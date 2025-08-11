@@ -2,6 +2,8 @@ use std::{fs::File, io::Read};
 
 use crate::parser::{buffer::Buffer, class_file::ClassFile};
 
+/// A `Reader` is responsible for reading the bytes of the class file
+/// into a `Buffer` and parsing its contents into a `ClassFile` object
 #[derive(Debug, Clone)]
 pub struct Reader {
     buffer: Buffer,
@@ -9,6 +11,8 @@ pub struct Reader {
 }
 
 impl Reader {
+    /// Creates a new `Reader` instance by loading the `Main.class` file from disk
+    /// and initializing a `Buffer` and an empty `ClassFile`
     pub fn new() -> Self {
         let mut buf = Vec::new();
 
@@ -23,6 +27,8 @@ impl Reader {
         }
     }
 
+    /// Read the bytes from the class file sequentially and parse them
+    /// into the class file
     pub fn read(&mut self) {
         let magic = self.buffer.read_u32().unwrap();
         let minor = self.buffer.read_u16().unwrap();
@@ -33,6 +39,7 @@ impl Reader {
         self.class_file.major = major;
     }
 
+    /// Prints the parsed contents of the class file in console
     pub fn print(self) {
         let magic = self.class_file.magic;
         let minor = self.class_file.minor;

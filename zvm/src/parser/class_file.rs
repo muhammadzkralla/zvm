@@ -1,3 +1,4 @@
+/// Hold the parsed contents of a class file bytes in memory
 #[derive(Debug, Clone)]
 pub struct ClassFile {
     pub magic: u32,
@@ -7,6 +8,7 @@ pub struct ClassFile {
 }
 
 impl ClassFile {
+    /// Creates a new `ClassFile` instance with all fields initialized to default values
     pub fn new() -> Self {
         ClassFile {
             magic: 0,
