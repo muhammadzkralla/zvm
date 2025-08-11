@@ -1,9 +1,12 @@
+/// A byte buffer that supports sequential reading of a byte array
+#[derive(Debug, Clone)]
 pub struct Buffer {
     bytes: Vec<u8>,
     offset: usize,
 }
 
 impl Buffer {
+    /// Creates a new `Buffer` from a vector of bytes, starting at offset 0.
     pub fn new(bytes: Vec<u8>) -> Self {
         Buffer {
             bytes: bytes,
@@ -11,6 +14,7 @@ impl Buffer {
         }
     }
 
+    /// Reads the next byte (`u8`) from the buffer.
     pub fn read_u8(&mut self) -> Option<u8> {
         let bytes = &self.bytes;
 
@@ -24,6 +28,7 @@ impl Buffer {
         }
     }
 
+    /// Reads the next byte (`u16`) from the buffer.
     pub fn read_u16(&mut self) -> Option<u16> {
         let bytes = &self.bytes;
 
@@ -37,6 +42,7 @@ impl Buffer {
         }
     }
 
+    /// Reads the next byte (`u32`) from the buffer.
     pub fn read_u32(&mut self) -> Option<u32> {
         let bytes = &self.bytes;
 
