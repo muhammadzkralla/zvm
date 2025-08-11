@@ -1,3 +1,8 @@
+use crate::parser::reader::Reader;
+mod parser;
+
 fn main() {
-    println!("Hello, world!");
+    let mut reader = Reader::new();
+    reader.read();
+    reader.print();
 }
