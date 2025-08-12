@@ -14,7 +14,7 @@ impl Buffer {
         }
     }
 
-    /// Reads the next byte from the buffer
+    /// Reads the next one byte (`u8`) from the buffer
     pub fn read_u8(&mut self) -> Option<u8> {
         let bytes = &self.bytes;
 
@@ -28,7 +28,7 @@ impl Buffer {
         }
     }
 
-    /// Reads the next two bytes from the buffer
+    /// Reads the next two bytes (`u16`) from the buffer
     pub fn read_u16(&mut self) -> Option<u16> {
         let bytes = &self.bytes;
 
@@ -42,7 +42,7 @@ impl Buffer {
         }
     }
 
-    /// Reads the next four bytes from the buffer
+    /// Reads the next four bytes (`u32`) from the buffer
     pub fn read_u32(&mut self) -> Option<u32> {
         let bytes = &self.bytes;
 
@@ -55,6 +55,17 @@ impl Buffer {
             ]);
 
             self.offset += 4;
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    /// Reads the next `n` bytes from the buffer
+    pub fn read_un(&mut self, n: usize) -> Option<Vec<u8>> {
+        if self.offset + n <= self.bytes.len() {
+            let result = self.bytes[self.offset..self.offset + n].to_vec();
+            self.offset += n;
             Some(result)
         } else {
             None
