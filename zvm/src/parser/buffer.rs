@@ -14,6 +14,7 @@ impl Buffer {
         }
     }
 
+
     /// Reads the next one byte (`u8`) from the buffer
     pub fn read_u8(&mut self) -> Option<u8> {
         let bytes = &self.bytes;
