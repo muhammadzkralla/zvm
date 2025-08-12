@@ -1,3 +1,5 @@
+use crate::parser::constant_pool_info::CpInfo;
+
 /// Hold the parsed contents of a class file bytes in memory
 #[derive(Debug, Clone)]
 pub struct ClassFile {
@@ -5,6 +7,7 @@ pub struct ClassFile {
     pub minor: u16,
     pub major: u16,
     pub constant_pool_count: u16,
+    pub constant_pool: Vec<CpInfo>,
 }
 
 impl ClassFile {
@@ -15,6 +18,7 @@ impl ClassFile {
             minor: 0,
             major: 0,
             constant_pool_count: 0,
+            constant_pool: Vec::new(),
         }
     }
 }
