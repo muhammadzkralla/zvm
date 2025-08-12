@@ -493,38 +493,28 @@ impl Reader {
     }
 
     fn print_access_flags(&self) {
-        println!("\nAccess Flags: 0x{:04X}", self.class_file.access_flags);
-
         let flags = self.class_file.access_flags;
+        println!("\nAccess Flags: 0x{:04X}", flags);
+
+        let flag_list = [
+            (0x0001, "ACC_PUBLIC"),
+            (0x0010, "ACC_FINAL"),
+            (0x0020, "ACC_SUPER"),
+            (0x0200, "ACC_INTERFACE"),
+            (0x0400, "ACC_ABSTRACT"),
+            (0x1000, "ACC_SYNTHETIC"),
+            (0x2000, "ACC_ANNOTATION"),
+            (0x4000, "ACC_ENUM"),
+            (0x8000, "ACC_MODULE"),
+        ];
+
         let mut flag_names = Vec::new();
 
         // Check each access flag bit according to JVM spec
-        if flags & 0x0001 != 0 {
-            flag_names.push("ACC_PUBLIC");
-        }
-        if flags & 0x0010 != 0 {
-            flag_names.push("ACC_FINAL");
-        }
-        if flags & 0x0020 != 0 {
-            flag_names.push("ACC_SUPER");
-        }
-        if flags & 0x0200 != 0 {
-            flag_names.push("ACC_INTERFACE");
-        }
-        if flags & 0x0400 != 0 {
-            flag_names.push("ACC_ABSTRACT");
-        }
-        if flags & 0x1000 != 0 {
-            flag_names.push("ACC_SYNTHETIC");
-        }
-        if flags & 0x2000 != 0 {
-            flag_names.push("ACC_ANNOTATION");
-        }
-        if flags & 0x4000 != 0 {
-            flag_names.push("ACC_ENUM");
-        }
-        if flags & 0x8000 != 0 {
-            flag_names.push("ACC_MODULE");
+        for (mask, name) in flag_list {
+            if flags & mask != 0 {
+                flag_names.push(name);
+            }
         }
 
         if flag_names.is_empty() {
