@@ -15,11 +15,27 @@ impl Reader {
     /// Creates a new `Reader` instance by loading the `Main.class` file from disk
     /// and initializing a `Buffer` and an empty `ClassFile`
     pub fn new() -> Self {
+        // Will be used to store the bytes read from the class file in memory
         let mut buf = Vec::new();
 
-        let mut file = File::open("Main.class").unwrap();
-        let _ = file.read_to_end(&mut buf).unwrap();
+        // Trying to open the class file and read it, safely of course, because Rust
+        let mut file = match File::open("Main.class") {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!("Error opening file: {}", e);
+                std::process::exit(1);
+            }
+        };
 
+        let _ = match file.read_to_end(&mut buf) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error reading file: {}", e);
+                std::process::exit(1);
+            }
+        };
+
+        // Create a new `Buffer` object with the stored bytes in memory
         let buffer = Buffer::new(buf);
 
         Reader {
@@ -28,29 +44,36 @@ impl Reader {
         }
     }
 
-    /// Read the bytes from the class file sequentially and parse them
-    /// into the class file
+    /// Read the bytes from the buffer sequentially and parse them
+    /// into the class file instance in memory
     pub fn read(&mut self) {
         self.read_header();
         self.read_cp();
     }
 
+    /// Read the header bytes from the buffer (first 8 bytes) and store them in memory
     fn read_header(&mut self) {
-        let magic = self.buffer.read_u32().unwrap();
-        let minor = self.buffer.read_u16().unwrap();
-        let major = self.buffer.read_u16().unwrap();
+        let magic = self.buffer.read_u32().expect("Failed to read magic bytes");
+        let minor = self.buffer.read_u16().expect("Failed to read minor bytes");
+        let major = self.buffer.read_u16().expect("Failed to read major bytes");
 
         self.class_file.magic = magic;
         self.class_file.minor = minor;
         self.class_file.major = major;
     }
 
+    /// Read the constant pool bytes from the buffer and store them in memory
     fn read_cp(&mut self) {
-        let constant_pool_count = self.buffer.read_u16().unwrap();
+        let constant_pool_count = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read the constant pool count bytes");
         self.class_file.constant_pool_count = constant_pool_count;
+
         self.read_cp_entries();
     }
 
+    /// Read all the constant pool entries from the buffer and store them in memory
     fn read_cp_entries(&mut self) {
         let pool_count = self.class_file.constant_pool_count as usize;
 
@@ -79,6 +102,7 @@ impl Reader {
         }
     }
 
+    /// Read a single constant pool table entry from the buffer and return it
     fn read_single_cp_entry(&mut self) -> CpInfo {
         let tag = self
             .buffer
