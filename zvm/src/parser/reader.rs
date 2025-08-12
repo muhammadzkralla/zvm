@@ -49,6 +49,7 @@ impl Reader {
     pub fn read(&mut self) {
         self.read_header();
         self.read_cp();
+        self.read_flags_and_classes();
     }
 
     /// Read the header bytes from the buffer (first 8 bytes) and store them in memory
@@ -340,6 +341,25 @@ impl Reader {
         matches!(entry, CpInfo::Long { .. } | CpInfo::Double { .. })
     }
 
+    fn read_flags_and_classes(&mut self) {
+        let access_flags = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read access_flags bytes");
+        let this_class = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read this_class bytes");
+        let super_class = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read super_class bytes");
+
+        self.class_file.access_flags = access_flags;
+        self.class_file.this_class = this_class;
+        self.class_file.super_class = super_class;
+    }
+
     /// Prints the parsed contents of the class file in console
     pub fn print(&self) {
         let magic = self.class_file.magic;
@@ -350,8 +370,13 @@ impl Reader {
         println!("Magic: 0x{:08X}", magic);
         println!("Minor: 0x{:04X}", minor);
         println!("Major: 0x{:04X}", major);
+
         println!("Constant Pool Count: {}", constant_pool_count);
         self.print_constant_pool();
+
+        self.print_access_flags();
+        println!("This Class: #{}", self.class_file.this_class);
+        println!("Super Class: #{}", self.class_file.super_class);
     }
 
     fn print_constant_pool(&self) {
@@ -465,5 +490,49 @@ impl Reader {
                 }
             }
         }
+    }
+
+    fn print_access_flags(&self) {
+        println!("\nAccess Flags: 0x{:04X}", self.class_file.access_flags);
+
+        let flags = self.class_file.access_flags;
+        let mut flag_names = Vec::new();
+
+        // Check each access flag bit according to JVM spec
+        if flags & 0x0001 != 0 {
+            flag_names.push("ACC_PUBLIC");
+        }
+        if flags & 0x0010 != 0 {
+            flag_names.push("ACC_FINAL");
+        }
+        if flags & 0x0020 != 0 {
+            flag_names.push("ACC_SUPER");
+        }
+        if flags & 0x0200 != 0 {
+            flag_names.push("ACC_INTERFACE");
+        }
+        if flags & 0x0400 != 0 {
+            flag_names.push("ACC_ABSTRACT");
+        }
+        if flags & 0x1000 != 0 {
+            flag_names.push("ACC_SYNTHETIC");
+        }
+        if flags & 0x2000 != 0 {
+            flag_names.push("ACC_ANNOTATION");
+        }
+        if flags & 0x4000 != 0 {
+            flag_names.push("ACC_ENUM");
+        }
+        if flags & 0x8000 != 0 {
+            flag_names.push("ACC_MODULE");
+        }
+
+        if flag_names.is_empty() {
+            println!("  No access flags set");
+        } else {
+            println!("  Flags: {}", flag_names.join(", "));
+        }
+
+        println!()
     }
 }
