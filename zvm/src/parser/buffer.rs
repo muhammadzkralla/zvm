@@ -60,4 +60,22 @@ impl Buffer {
             None
         }
     }
+
+    /// Reads the next `n` bytes from the buffer
+    pub fn read_un(&mut self, n: usize) -> Vec<u8> {
+        let bytes = &self.bytes;
+
+        if self.offset + n < bytes.len() {
+            let mut result = vec![0 as u8; n];
+
+            for i in 0..n {
+                let byte = self.read_u8();
+                result.push(byte);
+            }
+
+            Some(result)
+        } else {
+            None
+        }
+    }
 }
