@@ -44,7 +44,7 @@ impl Reader {
         }
     }
 
-    /// Read the bytes from the buffer sequentially and parse them
+    /// Reads the bytes from the buffer sequentially and parse them
     /// into the class file instance in memory
     pub fn read(&mut self) {
         self.read_header();
@@ -52,7 +52,7 @@ impl Reader {
         self.read_flags_and_classes();
     }
 
-    /// Read the header bytes from the buffer (first 8 bytes) and store them in memory
+    /// Reads the header bytes from the buffer (first 8 bytes) and store them in memory
     fn read_header(&mut self) {
         let magic = self.buffer.read_u32().expect("Failed to read magic bytes");
         let minor = self.buffer.read_u16().expect("Failed to read minor bytes");
@@ -63,7 +63,7 @@ impl Reader {
         self.class_file.major = major;
     }
 
-    /// Read the constant pool bytes from the buffer and store them in memory
+    /// Reads the constant pool bytes from the buffer and store them in memory
     fn read_cp(&mut self) {
         let constant_pool_count = self
             .buffer
@@ -74,7 +74,7 @@ impl Reader {
         self.read_cp_entries();
     }
 
-    /// Read all the constant pool entries from the buffer and store them in memory
+    /// Reads all the constant pool entries from the buffer and store them in memory
     fn read_cp_entries(&mut self) {
         let pool_count = self.class_file.constant_pool_count as usize;
 
@@ -103,7 +103,7 @@ impl Reader {
         }
     }
 
-    /// Read a single constant pool table entry from the buffer and return it
+    /// Reads a single constant pool table entry from the buffer and return it
     fn read_single_cp_entry(&mut self) -> CpInfo {
         let tag = self
             .buffer
@@ -129,6 +129,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_UTF8 entry
     fn read_utf8_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `length` field
         let length = self.buffer.read_u16().expect("Failed to read UTF8 length");
@@ -143,6 +144,7 @@ impl Reader {
         CpInfo::Utf8 { length, bytes }
     }
 
+    /// Reads the CONSTANT_INTEGER entry
     fn read_integer_entry(&mut self) -> CpInfo {
         // Take the four bytes of the `bytes` field
         let bytes = self
@@ -153,6 +155,7 @@ impl Reader {
         CpInfo::Integer { bytes }
     }
 
+    /// Reads the CONSTANT_FLOAT entry
     fn read_float_entry(&mut self) -> CpInfo {
         // Take the four bytes of the `bytes` field
         let bytes = self.buffer.read_u32().expect("Failed to read float bytes");
@@ -160,6 +163,7 @@ impl Reader {
         CpInfo::Float { bytes }
     }
 
+    /// Reads the CONSTANT_LONG entry
     fn read_long_entry(&mut self) -> CpInfo {
         // Take the four bytes of the `high_bytes` field
         let high_bytes = self
@@ -178,6 +182,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_DOUBLE entry
     fn read_double_entry(&mut self) -> CpInfo {
         // Take the four bytes of the `high_bytes` field
         let high_bytes = self
@@ -196,6 +201,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_CLASS entry
     fn read_class_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `name_index` field
         let name_index = self
@@ -206,6 +212,7 @@ impl Reader {
         CpInfo::Class { name_index }
     }
 
+    /// Reads the CONSTANT_STRING entry
     fn read_string_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `string_index` field
         let string_index = self.buffer.read_u16().expect("Failed to read string index");
@@ -213,6 +220,7 @@ impl Reader {
         CpInfo::String { string_index }
     }
 
+    /// Reads the CONSTANT_FIELDREF entry
     fn read_fieldref_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `class_index` field
         let class_index = self
@@ -232,6 +240,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_METHODREF entry
     fn read_methodref_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `class_index` field
         let class_index = self
@@ -251,6 +260,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_INTERFACEMETHODREF entry
     fn read_interface_methodref_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `class_index` field
         let class_index = self
@@ -270,6 +280,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_NAMEANDTYPE entry
     fn read_name_and_type_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `name_index` field
         let name_index = self
@@ -289,6 +300,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_METHODHANDLE entry
     fn read_method_handle_entry(&mut self) -> CpInfo {
         // Take the byte of the `reference_kind` field
         let reference_kind = self
@@ -308,6 +320,7 @@ impl Reader {
         }
     }
 
+    /// Reads the CONSTANT_METHODTYPE entry
     fn read_method_type_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `descriptor_index`
         let descriptor_index = self
@@ -318,6 +331,7 @@ impl Reader {
         CpInfo::MethodType { descriptor_index }
     }
 
+    /// Reads the CONSTANT_INVOKEDYNAMIC entry
     fn read_invoke_dynamic_entry(&mut self) -> CpInfo {
         // Take the two bytes of the `bootstrap_method_attr_index`
         let bootstrap_method_attr_index = self
@@ -337,10 +351,14 @@ impl Reader {
         }
     }
 
+    /// Checks if the current entry is `Long` or `Double` as they take two entries in the
+    /// constant pool table
     fn is_double_width_entry(&self, entry: &CpInfo) -> bool {
         matches!(entry, CpInfo::Long { .. } | CpInfo::Double { .. })
     }
 
+    /// Reads the `access_flags`, `this_class`, and `super_class` bytes from the buffer
+    /// and store them in memory
     fn read_flags_and_classes(&mut self) {
         let access_flags = self
             .buffer
@@ -379,6 +397,7 @@ impl Reader {
         println!("Super Class: #{}", self.class_file.super_class);
     }
 
+    /// Prints the parsed `constant_pool` field of the class file
     fn print_constant_pool(&self) {
         println!("\nConstant Pool:");
 
@@ -492,6 +511,7 @@ impl Reader {
         }
     }
 
+    /// Prints the parsed `access_flags` field of the class file
     fn print_access_flags(&self) {
         let flags = self.class_file.access_flags;
         println!("\nAccess Flags: 0x{:04X}", flags);
