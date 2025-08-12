@@ -8,6 +8,9 @@ pub struct ClassFile {
     pub major: u16,
     pub constant_pool_count: u16,
     pub constant_pool: Vec<CpInfo>,
+    pub access_flags: u16,
+    pub this_class: u16,
+    pub super_class: u16,
 }
 
 impl ClassFile {
@@ -19,6 +22,9 @@ impl ClassFile {
             major: 0,
             constant_pool_count: 0,
             constant_pool: Vec::new(),
+            access_flags: 0,
+            this_class: 0,
+            super_class: 0,
         }
     }
 }
