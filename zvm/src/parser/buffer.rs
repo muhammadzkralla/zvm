@@ -14,7 +14,6 @@ impl Buffer {
         }
     }
 
-
     /// Reads the next one byte (`u8`) from the buffer
     pub fn read_u8(&mut self) -> Option<u8> {
         let bytes = &self.bytes;
@@ -64,16 +63,9 @@ impl Buffer {
 
     /// Reads the next `n` bytes from the buffer
     pub fn read_un(&mut self, n: usize) -> Option<Vec<u8>> {
-        let bytes = &self.bytes;
-
-        if self.offset + n - 1 < bytes.len() {
-            let mut result = Vec::with_capacity(n);
-
-            for _ in 0..n {
-                if let Some(byte) = self.read_u8() {
-                    result.push(byte);
-                }
-            }
+        if self.offset + n <= self.bytes.len() {
+            let result = self.bytes[self.offset..self.offset + n].to_vec();
+            self.offset += n;
             Some(result)
         } else {
             None
