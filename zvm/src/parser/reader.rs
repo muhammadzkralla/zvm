@@ -572,6 +572,7 @@ impl Reader {
         println!()
     }
 
+    /// Prints the parsed `interfaces` fields of the class file
     fn print_interfaces(&self) {
         if self.class_file.interfaces.is_empty() {
             println!("Interfaces: None");
