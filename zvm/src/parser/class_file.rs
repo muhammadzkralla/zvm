@@ -11,6 +11,8 @@ pub struct ClassFile {
     pub access_flags: u16,
     pub this_class: u16,
     pub super_class: u16,
+    pub interfaces_count: u16,
+    pub interfaces: Vec<u16>,
 }
 
 impl ClassFile {
@@ -25,6 +27,8 @@ impl ClassFile {
             access_flags: 0,
             this_class: 0,
             super_class: 0,
+            interfaces_count: 0,
+            interfaces: Vec::new(),
         }
     }
 }

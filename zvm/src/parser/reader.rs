@@ -50,6 +50,7 @@ impl Reader {
         self.read_header();
         self.read_cp();
         self.read_flags_and_classes();
+        self.read_interfaces();
     }
 
     /// Reads the header bytes from the buffer (first 8 bytes) and store them in memory
@@ -378,6 +379,28 @@ impl Reader {
         self.class_file.super_class = super_class;
     }
 
+    /// Reads the interfaces bytes from the buffer and store them in memory
+    fn read_interfaces(&mut self) {
+        let interfaces_count = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read interfaces_count bytes");
+
+        self.class_file.interfaces_count = interfaces_count;
+
+        if interfaces_count == 0 {
+            return;
+        }
+
+        for _ in 0..interfaces_count {
+            let current_interface_ref = self
+                .buffer
+                .read_u16()
+                .expect("Failed to read interface reference");
+            self.class_file.interfaces.push(current_interface_ref);
+        }
+    }
+
     /// Prints the parsed contents of the class file in console
     pub fn print(&self) {
         let magic = self.class_file.magic;
@@ -395,6 +418,9 @@ impl Reader {
         self.print_access_flags();
         println!("This Class: #{}", self.class_file.this_class);
         println!("Super Class: #{}", self.class_file.super_class);
+
+        println!("Interfaces Count: {}", self.class_file.interfaces_count);
+        self.print_interfaces();
     }
 
     /// Prints the parsed `constant_pool` field of the class file
@@ -544,5 +570,18 @@ impl Reader {
         }
 
         println!()
+    }
+
+    fn print_interfaces(&self) {
+        if self.class_file.interfaces.is_empty() {
+            println!("Interfaces: None");
+            return;
+        }
+
+        println!("Interfaces:");
+
+        for (i, interface_ref) in self.class_file.interfaces.iter().enumerate() {
+            println!("  [{}]: #{}", i, interface_ref);
+        }
     }
 }
