@@ -449,7 +449,7 @@ impl Reader {
             self.class_file.fields.push(field);
         }
     }
-
+    /// parses the `field_info` bytes and return an instance of it to store in memory
     fn parse_field_info(&mut self) -> FieldInfo {
         let access_flags = self
             .buffer
@@ -484,6 +484,7 @@ impl Reader {
         }
     }
 
+    /// parses the `attribute_info` bytes and return an instance of it to store in memory
     fn parse_attr_info(&mut self) -> AttributeInfo {
         let attribute_name_index = self
             .buffer
