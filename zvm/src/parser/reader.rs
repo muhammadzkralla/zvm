@@ -1,7 +1,10 @@
 use std::fs::File;
 use std::io::Read;
 
-use crate::parser::{buffer::Buffer, class_file::ClassFile, constant_pool_info::CpInfo};
+use crate::parser::{
+    attribute_info::AttributeInfo, buffer::Buffer, class_file::ClassFile,
+    constant_pool_info::CpInfo, field_info::FieldInfo,
+};
 
 /// A `Reader` is responsible for reading the bytes of the class file
 /// into a `Buffer` and parsing its contents into a `ClassFile` object
@@ -51,6 +54,32 @@ impl Reader {
         self.read_cp();
         self.read_flags_and_classes();
         self.read_interfaces();
+        self.read_fields();
+    }
+
+    /// Prints the parsed contents of the class file in console
+    pub fn print(&self) {
+        let magic = self.class_file.magic;
+        let minor = self.class_file.minor;
+        let major = self.class_file.major;
+        let constant_pool_count = self.class_file.constant_pool_count;
+
+        println!("Magic: 0x{:08X}", magic);
+        println!("Minor: 0x{:04X}", minor);
+        println!("Major: 0x{:04X}", major);
+
+        println!("Constant Pool Count: {}", constant_pool_count);
+        self.print_constant_pool();
+
+        self.print_access_flags();
+        println!("This Class: #{}", self.class_file.this_class);
+        println!("Super Class: #{}", self.class_file.super_class);
+
+        println!("Interfaces Count: {}", self.class_file.interfaces_count);
+        self.print_interfaces();
+
+        println!("Fields Count: {}", self.class_file.fields_count);
+        self.print_fields();
     }
 
     /// Reads the header bytes from the buffer (first 8 bytes) and store them in memory
@@ -401,26 +430,84 @@ impl Reader {
         }
     }
 
-    /// Prints the parsed contents of the class file in console
-    pub fn print(&self) {
-        let magic = self.class_file.magic;
-        let minor = self.class_file.minor;
-        let major = self.class_file.major;
-        let constant_pool_count = self.class_file.constant_pool_count;
+    /// Reads the fields bytes from the buffer and store them in memory
+    fn read_fields(&mut self) {
+        let fields_count = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read fields_count bytes");
+        self.class_file.fields_count = fields_count;
 
-        println!("Magic: 0x{:08X}", magic);
-        println!("Minor: 0x{:04X}", minor);
-        println!("Major: 0x{:04X}", major);
+        let fields_count = self.class_file.fields_count as usize;
 
-        println!("Constant Pool Count: {}", constant_pool_count);
-        self.print_constant_pool();
+        if fields_count == 0 {
+            return;
+        }
 
-        self.print_access_flags();
-        println!("This Class: #{}", self.class_file.this_class);
-        println!("Super Class: #{}", self.class_file.super_class);
+        for _ in 0..fields_count {
+            let field = self.parse_field_info();
+            self.class_file.fields.push(field);
+        }
+    }
+    /// parses the `field_info` bytes and return an instance of it to store in memory
+    fn parse_field_info(&mut self) -> FieldInfo {
+        let access_flags = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read access_flags bytes");
+        let name_index = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read name_index bytes");
+        let descriptor_index = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read descriptor_index bytes");
+        let attributes_count = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read attributes_count bytes");
 
-        println!("Interfaces Count: {}", self.class_file.interfaces_count);
-        self.print_interfaces();
+        let mut attributes = Vec::new();
+
+        for _ in 0..attributes_count {
+            let attr = self.parse_attr_info();
+            attributes.push(attr);
+        }
+
+        FieldInfo {
+            access_flags,
+            name_index,
+            descriptor_index,
+            attributes_count,
+            attributes,
+        }
+    }
+
+    /// parses the `attribute_info` bytes and return an instance of it to store in memory
+    fn parse_attr_info(&mut self) -> AttributeInfo {
+        let attribute_name_index = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read attribute_name_index bytes");
+
+        let attribute_length = self
+            .buffer
+            .read_u32()
+            .expect("Failed to read attribute_length bytes");
+
+        let mut info = Vec::new();
+
+        for _ in 0..attribute_length {
+            let b = self.buffer.read_u8().expect("Failed to read current bytes");
+            info.push(b);
+        }
+
+        AttributeInfo {
+            attribute_name_index,
+            attribute_length,
+            info,
+        }
     }
 
     /// Prints the parsed `constant_pool` field of the class file
@@ -583,6 +670,34 @@ impl Reader {
 
         for (i, interface_ref) in self.class_file.interfaces.iter().enumerate() {
             println!("  [{}]: #{}", i, interface_ref);
+        }
+    }
+
+    /// Prints the parsed `fields` fields of the class file
+    fn print_fields(&self) {
+        if self.class_file.fields.is_empty() {
+            println!("Fields: None");
+            return;
+        }
+
+        println!("Fields:");
+        for (i, field) in self.class_file.fields.iter().enumerate() {
+            println!("  [{}]: Access Flags: 0x{:04X}", i, field.access_flags);
+            println!("  [{}]: Name: {}", i, field.name_index);
+            println!("  [{}]: Descriptor: {}", i, field.descriptor_index);
+            println!("  [{}]: Attributes Count: {}", i, field.attributes_count);
+
+            for (j, attr) in field.attributes.iter().enumerate() {
+                println!("  Attributes:");
+                println!("      [{}]: Name: {}", j, attr.attribute_name_index);
+                println!("      [{}]: Length: {}", j, attr.attribute_length);
+                println!("      [{}]: Info: {}", j, attr.attribute_length);
+
+                for (k, b) in attr.info.iter().enumerate() {
+                    println!("      Info:");
+                    println!("          [{}]: Byte: {}", k, b);
+                }
+            }
         }
     }
 }
