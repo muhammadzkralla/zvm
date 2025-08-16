@@ -775,7 +775,6 @@ impl Reader {
                 println!("  Attributes:");
                 println!("      [{}]: Name: {}", j, attr.attribute_name_index);
                 println!("      [{}]: Length: {}", j, attr.attribute_length);
-                println!("      [{}]: Info: {}", j, attr.attribute_length);
 
                 print!("      Info Bytes: ");
                 for (k, b) in attr.info.iter().enumerate() {
