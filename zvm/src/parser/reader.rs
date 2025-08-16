@@ -3,7 +3,7 @@ use std::io::Read;
 
 use crate::parser::{
     attribute_info::AttributeInfo, buffer::Buffer, class_file::ClassFile,
-    constant_pool_info::CpInfo, field_info::FieldInfo,
+    constant_pool_info::CpInfo, field_info::FieldInfo, method_info::MethodInfo,
 };
 
 /// A `Reader` is responsible for reading the bytes of the class file
@@ -55,6 +55,7 @@ impl Reader {
         self.read_flags_and_classes();
         self.read_interfaces();
         self.read_fields();
+        self.read_methods();
     }
 
     /// Prints the parsed contents of the class file in console
@@ -80,6 +81,9 @@ impl Reader {
 
         println!("Fields Count: {}", self.class_file.fields_count);
         self.print_fields();
+
+        println!("Methods Count: {}", self.class_file.methods_count);
+        self.print_methods();
     }
 
     /// Reads the header bytes from the buffer (first 8 bytes) and store them in memory
@@ -449,6 +453,7 @@ impl Reader {
             self.class_file.fields.push(field);
         }
     }
+
     /// parses the `field_info` bytes and return an instance of it to store in memory
     fn parse_field_info(&mut self) -> FieldInfo {
         let access_flags = self
@@ -476,6 +481,57 @@ impl Reader {
         }
 
         FieldInfo {
+            access_flags,
+            name_index,
+            descriptor_index,
+            attributes_count,
+            attributes,
+        }
+    }
+
+    /// Reads the methods bytes from the buffer and store them in memory
+    fn read_methods(&mut self) {
+        let methods_count = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read methods_count bytes");
+        self.class_file.methods_count = methods_count;
+
+        let methods_count = self.class_file.methods_count as usize;
+
+        for _ in 0..methods_count {
+            let field = self.parse_method_info();
+            self.class_file.methods.push(field);
+        }
+    }
+
+    /// parses the `method_info` bytes and return an instance of it to store in memory
+    fn parse_method_info(&mut self) -> MethodInfo {
+        let access_flags = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read access_flags bytes");
+        let name_index = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read name_index bytes");
+        let descriptor_index = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read descriptor_index bytes");
+        let attributes_count = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read attributes_count bytes");
+
+        let mut attributes = Vec::new();
+
+        for _ in 0..attributes_count {
+            let attr = self.parse_attr_info();
+            attributes.push(attr);
+        }
+
+        MethodInfo {
             access_flags,
             name_index,
             descriptor_index,
@@ -697,6 +753,34 @@ impl Reader {
                     println!("      Info:");
                     println!("          [{}]: Byte: {}", k, b);
                 }
+            }
+        }
+    }
+
+    /// Prints the parsed `methods` fields of the class file
+    fn print_methods(&self) {
+        if self.class_file.methods.is_empty() {
+            println!("Methods: None");
+            return;
+        }
+
+        println!("Methods:");
+        for (i, method) in self.class_file.methods.iter().enumerate() {
+            println!("  [{}]: Access Flags: 0x{:04X}", i, method.access_flags);
+            println!("  [{}]: Name: {}", i, method.name_index);
+            println!("  [{}]: Descriptor: {}", i, method.descriptor_index);
+            println!("  [{}]: Attributes Count: {}", i, method.attributes_count);
+
+            for (j, attr) in method.attributes.iter().enumerate() {
+                println!("  Attributes:");
+                println!("      [{}]: Name: {}", j, attr.attribute_name_index);
+                println!("      [{}]: Length: {}", j, attr.attribute_length);
+
+                print!("      Info Bytes: ");
+                for (k, b) in attr.info.iter().enumerate() {
+                    print!("{}, ", b);
+                }
+                println!();
             }
         }
     }
