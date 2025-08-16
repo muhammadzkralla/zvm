@@ -489,6 +489,7 @@ impl Reader {
         }
     }
 
+    /// Reads the methods bytes from the buffer and store them in memory
     fn read_methods(&mut self) {
         let methods_count = self
             .buffer
@@ -504,6 +505,7 @@ impl Reader {
         }
     }
 
+    /// parses the `method_info` bytes and return an instance of it to store in memory
     fn parse_method_info(&mut self) -> MethodInfo {
         let access_flags = self
             .buffer
@@ -755,6 +757,7 @@ impl Reader {
         }
     }
 
+    /// Prints the parsed `methods` fields of the class file
     fn print_methods(&self) {
         if self.class_file.methods.is_empty() {
             println!("Methods: None");
