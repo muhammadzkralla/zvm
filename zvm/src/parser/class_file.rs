@@ -1,4 +1,7 @@
-use crate::parser::{constant_pool_info::CpInfo, field_info::FieldInfo, method_info::MethodInfo};
+use crate::parser::{
+    attribute_info::AttributeInfo, constant_pool_info::CpInfo, field_info::FieldInfo,
+    method_info::MethodInfo,
+};
 
 /// Hold the parsed contents of a class file bytes in memory
 #[derive(Debug, Clone)]
@@ -17,6 +20,8 @@ pub struct ClassFile {
     pub fields: Vec<FieldInfo>,
     pub methods_count: u16,
     pub methods: Vec<MethodInfo>,
+    pub attributes_count: u16,
+    pub attributes: Vec<AttributeInfo>,
 }
 
 impl ClassFile {
@@ -37,6 +42,8 @@ impl ClassFile {
             fields: Vec::new(),
             methods_count: 0,
             methods: Vec::new(),
+            attributes_count: 0,
+            attributes: Vec::new(),
         }
     }
 }
