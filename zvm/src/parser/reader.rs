@@ -549,6 +549,7 @@ impl Reader {
         }
     }
 
+    /// Reads the attributes bytes from the buffer and store them in memory
     fn read_attributes(&mut self) {
         let attributes_count = self
             .buffer
@@ -809,6 +810,7 @@ impl Reader {
         }
     }
 
+    /// Prints the parsed `attributes` fields of the class file
     fn print_attributes(&self) {
         if self.class_file.attributes.is_empty() {
             println!("Attributes: None");
