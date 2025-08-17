@@ -56,6 +56,7 @@ impl Reader {
         self.read_interfaces();
         self.read_fields();
         self.read_methods();
+        self.read_attributes();
     }
 
     /// Prints the parsed contents of the class file in console
@@ -84,6 +85,14 @@ impl Reader {
 
         println!("Methods Count: {}", self.class_file.methods_count);
         self.print_methods();
+
+        println!("Attributes Count: {}", self.class_file.attributes_count);
+        self.print_attributes();
+
+        println!("------------------------------------");
+        println!("PARSING THE CLASS FILE IS OVER");
+        println!("Current Offset Value: 0x{:04X}", self.buffer.offset);
+        println!("Bytes Processed: {}", self.buffer.offset);
     }
 
     /// Reads the header bytes from the buffer (first 8 bytes) and store them in memory
@@ -540,6 +549,21 @@ impl Reader {
         }
     }
 
+    fn read_attributes(&mut self) {
+        let attributes_count = self
+            .buffer
+            .read_u16()
+            .expect("Failed to read attributes_count bytes");
+        self.class_file.attributes_count = attributes_count;
+
+        let attributes_count = self.class_file.attributes_count as usize;
+
+        for _ in 0..attributes_count {
+            let attr = self.parse_attr_info();
+            self.class_file.attributes.push(attr);
+        }
+    }
+
     /// parses the `attribute_info` bytes and return an instance of it to store in memory
     fn parse_attr_info(&mut self) -> AttributeInfo {
         let attribute_name_index = self
@@ -782,6 +806,25 @@ impl Reader {
                 }
                 println!();
             }
+        }
+    }
+
+    fn print_attributes(&self) {
+        if self.class_file.attributes.is_empty() {
+            println!("Attributes: None");
+            return;
+        }
+
+        println!("Attributes:");
+        for (i, attr) in self.class_file.attributes.iter().enumerate() {
+            println!("      [{}]: Name: {}", i, attr.attribute_name_index);
+            println!("      [{}]: Length: {}", i, attr.attribute_length);
+
+            print!("      Info Bytes: ");
+            for (j, b) in attr.info.iter().enumerate() {
+                print!("{}, ", b);
+            }
+            println!();
         }
     }
 }

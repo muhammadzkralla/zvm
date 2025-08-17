@@ -2,7 +2,7 @@
 #[derive(Debug, Clone)]
 pub struct Buffer {
     bytes: Vec<u8>,
-    offset: usize,
+    pub offset: usize,
 }
 
 impl Buffer {
