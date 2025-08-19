@@ -46,4 +46,74 @@ impl ClassFile {
             attributes: Vec::new(),
         }
     }
+
+    fn get_utf8(&self, index: u16) -> Option<String> {
+        if let Some(CpInfo::Utf8 { bytes, .. }) = self.constant_pool.get(index as usize) {
+            std::str::from_utf8(bytes).ok().map(|s| s.to_string())
+        } else {
+            None
+        }
+    }
+
+    fn get_class_name(&self, index: u16) -> Option<String> {
+        if let Some(CpInfo::Class { name_index }) = self.constant_pool.get(index as usize) {
+            self.get_utf8(*name_index)
+        } else {
+            None
+        }
+    }
+
+    fn get_field_name(&self, index: u16) -> Option<String> {
+        if let Some(CpInfo::NameAndType {
+            name_index,
+            descriptor_index,
+        }) = self.constant_pool.get(index as usize)
+        {
+            self.get_utf8(*name_index)
+        } else {
+            None
+        }
+    }
+
+    fn get_field_descriptor(&self, index: u16) -> Option<String> {
+        if let Some(CpInfo::NameAndType {
+            name_index,
+            descriptor_index,
+        }) = self.constant_pool.get(index as usize)
+        {
+            self.get_utf8(*descriptor_index)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_field_info(&self, index: u16) -> Option<(String, String, String)> {
+        if let Some(CpInfo::Fieldref {
+            class_index,
+            name_and_type_index,
+        }) = self.constant_pool.get(index as usize)
+        {
+            let class_name = self
+                .get_class_name(*class_index)
+                .expect("Failed to get class name");
+            let field_name = self
+                .get_field_name(*name_and_type_index)
+                .expect("Failed to get field name");
+            let field_descriptor = self
+                .get_field_descriptor(*name_and_type_index)
+                .expect("Failed to get field descriptor");
+
+            Some((class_name, field_name, field_descriptor))
+        } else {
+            None
+        }
+    }
+
+    pub fn get_string(&self, index: u16) -> Option<String> {
+        if let Some(CpInfo::String { string_index }) = self.constant_pool.get(index as usize) {
+            self.get_utf8(*string_index)
+        } else {
+            None
+        }
+    }
 }

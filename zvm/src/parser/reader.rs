@@ -93,6 +93,39 @@ impl Reader {
         println!("PARSING THE CLASS FILE IS OVER");
         println!("Current Offset Value: 0x{:04X}", self.buffer.offset);
         println!("Bytes Processed: {}", self.buffer.offset);
+
+        let str = self
+            .class_file
+            .get_string(13u16)
+            .expect("Failed to read String");
+        println!("Parsed String on index #13 from the class file: {}", str);
+
+        let field1 = self
+            .class_file
+            .get_field_info(7u16)
+            .expect("Failed to read field #7");
+        println!(
+            "Parsed Field on index #7 from the class file: {:#?}",
+            field1
+        );
+
+        let field2 = self
+            .class_file
+            .get_field_info(21u16)
+            .expect("Failed to read field #21");
+        println!(
+            "Parsed Field on index #21 from the class file: {:#?}",
+            field2
+        );
+
+        let field3 = self
+            .class_file
+            .get_field_info(30u16)
+            .expect("Failed to read field #30");
+        println!(
+            "Parsed Field on index #30 from the class file: {:#?}",
+            field3
+        );
     }
 
     /// Reads the header bytes from the buffer (first 8 bytes) and store them in memory
