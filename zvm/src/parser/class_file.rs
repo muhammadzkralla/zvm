@@ -99,15 +99,9 @@ impl ClassFile {
             name_and_type_index,
         }) = self.constant_pool.get(index as usize)
         {
-            let class_name = self
-                .get_class_name(*class_index)
-                .expect("Failed to get class name");
-            let field_name = self
-                .get_field_name(*name_and_type_index)
-                .expect("Failed to get field name");
-            let field_descriptor = self
-                .get_field_descriptor(*name_and_type_index)
-                .expect("Failed to get field descriptor");
+            let class_name = self.get_class_name(*class_index)?;
+            let field_name = self.get_field_name(*name_and_type_index)?;
+            let field_descriptor = self.get_field_descriptor(*name_and_type_index)?;
 
             Some((class_name, field_name, field_descriptor))
         } else {
