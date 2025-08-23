@@ -4,7 +4,7 @@ use crate::parser::{
 };
 
 /// Hold the parsed contents of a class file bytes in memory
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ClassFile {
     pub magic: u32,
     pub minor: u16,
