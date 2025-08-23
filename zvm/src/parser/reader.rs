@@ -94,11 +94,16 @@ impl Reader {
         println!("Current Offset Value: 0x{:04X}", self.buffer.offset);
         println!("Bytes Processed: {}", self.buffer.offset);
 
+        self.test_parsing_fields_and_methods();
+    }
+
+    /// Included just for testing, will be removed later
+    fn test_parsing_fields_and_methods(&self) {
         let str = self
             .class_file
-            .get_string(13u16)
+            .get_string(28u16)
             .expect("Failed to read String");
-        println!("Parsed String on index #13 from the class file: {}", str);
+        println!("Parsed String on index #28 from the class file: {}", str);
 
         let field1 = self
             .class_file
@@ -111,20 +116,65 @@ impl Reader {
 
         let field2 = self
             .class_file
-            .get_field_info(21u16)
-            .expect("Failed to read field #21");
+            .get_field_info(13u16)
+            .expect("Failed to read field #13");
         println!(
-            "Parsed Field on index #21 from the class file: {:#?}",
+            "Parsed Field on index #13 from the class file: {:#?}",
             field2
         );
 
         let field3 = self
             .class_file
-            .get_field_info(30u16)
-            .expect("Failed to read field #30");
+            .get_field_info(25u16)
+            .expect("Failed to read field #25");
         println!(
-            "Parsed Field on index #30 from the class file: {:#?}",
+            "Parsed Field on index #25 from the class file: {:#?}",
             field3
+        );
+
+        let method1 = self
+            .class_file
+            .get_method_info(1u16)
+            .expect("Failed to read method #1");
+        println!(
+            "Parsed Method on index #1 from the class file: {:#?}",
+            method1
+        );
+
+        let method2 = self
+            .class_file
+            .get_method_info(19u16)
+            .expect("Failed to read method #19");
+        println!(
+            "Parsed Method on index #19 from the class file: {:#?}",
+            method2
+        );
+
+        let method3 = self
+            .class_file
+            .get_method_info(30u16)
+            .expect("Failed to read method #30");
+        println!(
+            "Parsed Method on index #30 from the class file: {:#?}",
+            method3
+        );
+
+        let method4 = self
+            .class_file
+            .get_method_info(33u16)
+            .expect("Failed to read method #33");
+        println!(
+            "Parsed Method on index #33 from the class file: {:#?}",
+            method4
+        );
+
+        let method5 = self
+            .class_file
+            .get_method_info(36u16)
+            .expect("Failed to read method #36");
+        println!(
+            "Parsed Method on index #36 from the class file: {:#?}",
+            method5
         );
     }
 

@@ -4,7 +4,7 @@ use crate::parser::{
 };
 
 /// Hold the parsed contents of a class file bytes in memory
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ClassFile {
     pub magic: u32,
     pub minor: u16,
@@ -66,7 +66,7 @@ impl ClassFile {
     }
 
     /// Retrieves the field name from a `NameAndType` entry in the constant pool.
-    fn get_field_name(&self, index: u16) -> Option<String> {
+    fn get_field_or_method_name(&self, index: u16) -> Option<String> {
         if let Some(CpInfo::NameAndType {
             name_index,
             descriptor_index,
@@ -80,7 +80,7 @@ impl ClassFile {
 
     /// Retrieves the field descriptor (type signature) from a `NameAndType` entry
     /// in the constant pool.
-    fn get_field_descriptor(&self, index: u16) -> Option<String> {
+    fn get_field_or_method_descriptor(&self, index: u16) -> Option<String> {
         if let Some(CpInfo::NameAndType {
             name_index,
             descriptor_index,
@@ -100,8 +100,25 @@ impl ClassFile {
         }) = self.constant_pool.get(index as usize)
         {
             let class_name = self.get_class_name(*class_index)?;
-            let field_name = self.get_field_name(*name_and_type_index)?;
-            let field_descriptor = self.get_field_descriptor(*name_and_type_index)?;
+            let field_name = self.get_field_or_method_name(*name_and_type_index)?;
+            let field_descriptor = self.get_field_or_method_descriptor(*name_and_type_index)?;
+
+            Some((class_name, field_name, field_descriptor))
+        } else {
+            None
+        }
+    }
+
+    /// Retrieves detailed method information from a `Methodref` entry in the constant pool.
+    pub fn get_method_info(&self, index: u16) -> Option<(String, String, String)> {
+        if let Some(CpInfo::Methodref {
+            class_index,
+            name_and_type_index,
+        }) = self.constant_pool.get(index as usize)
+        {
+            let class_name = self.get_class_name(*class_index)?;
+            let field_name = self.get_field_or_method_name(*name_and_type_index)?;
+            let field_descriptor = self.get_field_or_method_descriptor(*name_and_type_index)?;
 
             Some((class_name, field_name, field_descriptor))
         } else {
