@@ -43,12 +43,13 @@ impl Vm {
         let attribute_info = method_info.attributes[0].clone();
         let info_bytes = attribute_info.info;
 
-        // <clinit> bytecode: [16, 69, 179, 0, 21, 17, 1, 164, 179, 0, 30, 177]
-        // TODO: Introduce a way to extract the bytecode from the info bytes
-        // dynamically, as they are not always be those specified indices here
-        // for any other program
-        let bytecode = info_bytes[8..8 + 12].to_vec();
+        // Extract code_length (four big-endian bytes) from info_bytes[4..8]
+        let code_length =
+            u32::from_be_bytes([info_bytes[4], info_bytes[5], info_bytes[6], info_bytes[7]])
+                as usize;
 
+        // Extract bytecode from info_bytes[8..8+code_length]
+        let bytecode = info_bytes[8..8 + code_length].to_vec();
         // TODO: Introduce a frame call stack to handle all the stack frames
         let mut frame = Frame::new(1);
 
