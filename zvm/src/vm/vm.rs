@@ -40,8 +40,8 @@ impl Vm {
         };
 
         // I assume that there will be always one attribute and it's the code attribute
-        let attribute_info = method_info.attributes[0].clone();
-        let info_bytes = attribute_info.info;
+        let attribute_info = &method_info.attributes[0];
+        let info_bytes = &attribute_info.info;
 
         // Extract code_length (four big-endian bytes) from info_bytes[4..8]
         let code_length =
