@@ -97,6 +97,10 @@ impl Reader {
         self.test_parsing_fields_and_methods();
     }
 
+    pub fn get_class_file(&self) -> ClassFile {
+        self.class_file.clone()
+    }
+
     /// Included just for testing, will be removed later
     fn test_parsing_fields_and_methods(&self) {
         let str = self
