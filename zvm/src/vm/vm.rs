@@ -5,11 +5,16 @@ use crate::{
 
 /// The virtual machine
 pub struct Vm {
+    /// Stores runtime data such as static fields and heap
     runtime_data: RuntimeDataArea,
+    /// Parsed class file currently loaded in the VM
     class_file: ClassFile,
 }
 
 impl Vm {
+    /// Creates a new instance of the virtual machine
+    ///
+    /// Initializes `runtime_data` and sets `class_file` to default
     pub fn new() -> Self {
         Self {
             runtime_data: RuntimeDataArea::new(),
@@ -17,11 +22,12 @@ impl Vm {
         }
     }
 
+    /// Sets the class file to be executed by the VM
     pub fn init_class_file(&mut self, class_file: ClassFile) {
         self.class_file = class_file;
     }
 
-    /// Executes the <clinit> method (class initializer)
+    /// Executes the `<clinit>` (class initializer) method of the loaded class file
     pub fn execute_clinit(&mut self) {
         println!("Executing <clinit> method...");
 
@@ -67,7 +73,9 @@ impl Vm {
                     frame.pc += 1;
                     let low = bytecode[frame.pc] as u16;
 
-                    let value = ((high << 8) + low) as i32;
+                    // AS SPECIFIED BY THE SPECS:
+                    // (byte1 << 8) | byte2
+                    let value = ((high << 8) | low) as i32;
                     frame.operand_stack.push(Value::Int(value));
 
                     println!("  sipush {}", value);
@@ -79,7 +87,9 @@ impl Vm {
                     frame.pc += 1;
                     let index_low = bytecode[frame.pc] as u16;
 
-                    let field_ref = (index_high << 8) + index_low;
+                    // AS SPECIFIED BY THE SPECS:
+                    // (indexbyte1 << 8) | indexbyte2
+                    let field_ref = (index_high << 8) | index_low;
 
                     if let Some(value) = frame.operand_stack.pop() {
                         if let Some((class_name, field_name, _)) =
@@ -105,6 +115,7 @@ impl Vm {
         }
     }
 
+    /// Runs the virtual machine with the given class file
     pub fn run(&mut self, class_file: ClassFile) {
         println!("Starting JVM execution...\n");
 
@@ -117,6 +128,7 @@ impl Vm {
         println!("\nJVM execution completed.");
     }
 
+    /// Finds the `<clinit>` method from the loaded class file if it exists
     fn find_clinit(&self) -> Option<MethodInfo> {
         for method_info in self.class_file.methods.iter() {
             let name_index = method_info.name_index;
