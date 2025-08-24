@@ -48,7 +48,7 @@ impl ClassFile {
     }
 
     /// Retrieves a `UTF-8` string from the constant pool at the given index.
-    fn get_utf8(&self, index: u16) -> Option<String> {
+    pub fn get_utf8(&self, index: u16) -> Option<String> {
         if let Some(CpInfo::Utf8 { bytes, .. }) = self.constant_pool.get(index as usize) {
             std::str::from_utf8(bytes).ok().map(|s| s.to_string())
         } else {
