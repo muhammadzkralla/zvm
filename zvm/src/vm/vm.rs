@@ -31,12 +31,13 @@ impl Vm {
     pub fn execute_clinit(&mut self) {
         println!("Executing <clinit> method...");
 
-        // I'm pretty sure it won't panic, as I've already seen the actual bytes and
-        // I'm sure the method_info is there
-        // TODO: Handle this gracefully
-        let method_info = self
-            .find_clinit()
-            .expect("Failed to get the <clinit> method info");
+        let method_info = match self.find_clinit() {
+            Some(method) => method,
+            None => {
+                println!("No <clinit> method found; skipping static initialization.");
+                return;
+            }
+        };
 
         // I assume that there will be always one attribute and it's the code attribute
         let attribute_info = method_info.attributes[0].clone();
