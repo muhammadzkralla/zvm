@@ -1,6 +1,6 @@
 use crate::{
     parser::{attribute_info, class_file::ClassFile, method_info::MethodInfo, opcode::Opcode},
-    vm::{runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
+    vm::{call_stack::CallStack, runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
 
 /// The virtual machine
@@ -9,6 +9,8 @@ pub struct Vm {
     runtime_data: RuntimeDataArea,
     /// Parsed class file currently loaded in the VM
     class_file: ClassFile,
+    /// The call stack to handle stack method frames execution
+    call_stack: CallStack,
 }
 
 impl Vm {
@@ -19,6 +21,7 @@ impl Vm {
         Self {
             runtime_data: RuntimeDataArea::new(),
             class_file: Default::default(),
+            call_stack: CallStack::new(Some(1000)),
         }
     }
 
@@ -29,18 +32,16 @@ impl Vm {
 
     /// Executes the `<clinit>` (class initializer) method of the loaded class file
     pub fn execute_clinit(&mut self) {
-        println!("Executing <clinit> method...");
-
-        let method_info = match self.find_clinit() {
+        let clinit_method = match self.find_method("<clinit>".to_string()) {
             Some(method) => method,
             None => {
-                println!("No <clinit> method found; skipping static initialization.");
+                println!("No <clinit> method found");
                 return;
             }
         };
 
         // I assume that there will be always one attribute and it's the code attribute
-        let attribute_info = &method_info.attributes[0];
+        let attribute_info = &clinit_method.attributes[0];
         let info_bytes = &attribute_info.info;
 
         // Extract code_length (four big-endian bytes) from info_bytes[4..8]
@@ -50,71 +51,36 @@ impl Vm {
 
         // Extract bytecode from info_bytes[8..8+code_length]
         let bytecode = info_bytes[8..8 + code_length].to_vec();
-        // TODO: Introduce a frame call stack to handle all the stack frames
-        let mut frame = Frame::new(1);
 
-        // TODO: Delegate this logic to the frame call stack when implemented
-        while frame.pc < bytecode.len() {
-            let opcode = Opcode::from(bytecode[frame.pc]);
-            println!("Executing opcode: {:?} at pc: {}", opcode, frame.pc);
+        // TODO: Change the hardcoded max_locals value and handle env args array
+        self.call_stack
+            .push_frame("<clinit>".to_string(), bytecode, 10, vec![]);
+    }
 
-            // TODO: Delegate this logic to the opcode file
-            match opcode {
-                Opcode::Bipush => {
-                    // Push byte value onto stack
-                    frame.pc += 1;
-                    let value = bytecode[frame.pc] as i32;
-                    frame.operand_stack.push(Value::Int(value));
-
-                    println!("  bipush {}", value);
-                }
-                Opcode::Sipush => {
-                    // Push short value onto stack
-                    frame.pc += 1;
-                    let high = bytecode[frame.pc] as u16;
-                    frame.pc += 1;
-                    let low = bytecode[frame.pc] as u16;
-
-                    // AS SPECIFIED BY THE SPECS:
-                    // (byte1 << 8) | byte2
-                    let value = ((high << 8) | low) as i32;
-                    frame.operand_stack.push(Value::Int(value));
-
-                    println!("  sipush {}", value);
-                }
-                Opcode::Putstatic => {
-                    // Store static field
-                    frame.pc += 1;
-                    let index_high = bytecode[frame.pc] as u16;
-                    frame.pc += 1;
-                    let index_low = bytecode[frame.pc] as u16;
-
-                    // AS SPECIFIED BY THE SPECS:
-                    // (indexbyte1 << 8) | indexbyte2
-                    let field_ref = (index_high << 8) | index_low;
-
-                    if let Some(value) = frame.operand_stack.pop() {
-                        if let Some((class_name, field_name, _)) =
-                            self.class_file.get_field_info(field_ref)
-                        {
-                            self.runtime_data
-                                .static_fields
-                                .insert(class_name.clone(), value.clone());
-                            println!("  putstatic {}.{} = {:?}", class_name, field_name, value);
-                        }
-                    }
-                }
-                Opcode::Return => {
-                    println!("  return");
-                    break;
-                }
-                _ => {
-                    println!("  Unhandled opcode in <clinit>: {:?}", opcode);
-                }
+    pub fn execute_main(&mut self) {
+        let main_method = match self.find_method("main".to_string()) {
+            Some(method) => method,
+            None => {
+                println!("No main method found");
+                return;
             }
+        };
 
-            frame.pc += 1;
-        }
+        // I assume that there will be always one attribute and it's the code attribute
+        let attribute_info = &main_method.attributes[0];
+        let info_bytes = &attribute_info.info;
+
+        // Extract code_length (four big-endian bytes) from info_bytes[4..8]
+        let code_length =
+            u32::from_be_bytes([info_bytes[4], info_bytes[5], info_bytes[6], info_bytes[7]])
+                as usize;
+
+        // Extract bytecode from info_bytes[8..8+code_length]
+        let bytecode = info_bytes[8..8 + code_length].to_vec();
+
+        // TODO: Change the hardcoded max_locals value and handle env args array
+        self.call_stack
+            .push_frame("main".to_string(), bytecode, 10, vec![]);
     }
 
     /// Runs the virtual machine with the given class file
@@ -124,18 +90,32 @@ impl Vm {
         // Initialize class file
         self.init_class_file(class_file);
 
+        // Execute the main method
+        self.execute_main();
+
         // Execute class static initializer
         self.execute_clinit();
+
+        let size = self.call_stack.size();
+
+        println!("\nCURRENT CALL STACK SIZE? {}", size);
+
+        self.call_stack
+            .execute_frames(&self.class_file, &mut self.runtime_data);
+
+        let flag = self.call_stack.is_empty();
+
+        println!("\nIS THE CALL STACK EMPTY NOW? {}", flag);
 
         println!("\nJVM execution completed.");
     }
 
     /// Finds the `<clinit>` method from the loaded class file if it exists
-    fn find_clinit(&self) -> Option<MethodInfo> {
+    fn find_method(&self, name: String) -> Option<MethodInfo> {
         for method_info in self.class_file.methods.iter() {
             let name_index = method_info.name_index;
             if let Some(method_name) = self.class_file.get_utf8(name_index) {
-                if method_name == "<clinit>" {
+                if method_name == name {
                     return Some(method_info.clone());
                 }
             }
