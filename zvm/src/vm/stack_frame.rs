@@ -86,11 +86,6 @@ impl Frame {
                         }
                     }
                 }
-                Opcode::Return => {
-                    println!("  return");
-                    break;
-                }
-
                 Opcode::Getstatic => {
                     // Get static field
                     current_pc += 1;
