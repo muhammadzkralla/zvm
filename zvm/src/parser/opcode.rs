@@ -8,6 +8,7 @@ pub enum Opcode {
     Getstatic = 0xB2,     // 178
     Ldc = 0x12,           // 18
     Invokevirtual = 0xB6, // 182
+    Invokestatic = 0xB8,  // 184
     Bipush = 0x10,        // 16
     Putstatic = 0xB3,     // 179
     Sipush = 0x11,        // 17
@@ -22,6 +23,7 @@ impl From<u8> for Opcode {
             0xB2 => Opcode::Getstatic,
             0x12 => Opcode::Ldc,
             0xB6 => Opcode::Invokevirtual,
+            0xB8 => Opcode::Invokestatic,
             0x10 => Opcode::Bipush,
             0xB3 => Opcode::Putstatic,
             0x11 => Opcode::Sipush,

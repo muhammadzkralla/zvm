@@ -2,7 +2,7 @@ use crate::vm::value::Value;
 
 /// Local Variables for method execution
 pub struct LocalVariables {
-    vars: Vec<Option<Value>>,
+    pub vars: Vec<Option<Value>>,
 }
 
 impl LocalVariables {
