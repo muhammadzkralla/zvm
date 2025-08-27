@@ -1,5 +1,5 @@
 use crate::{
-    parser::{class_file::ClassFile, method_info::MethodInfo, opcode::Opcode},
+    parser::{class_file::ClassFile, opcode::Opcode},
     vm::{
         call_stack::CallStack, local::LocalVariables, operand_stack::OperandStack,
         runtime::RuntimeDataArea, value::Value,
@@ -35,7 +35,7 @@ impl Frame {
     ) {
         let name = self.method_name.clone().expect("Failed to get method name");
 
-        println!("\nEXECUTING FRAME: {}", name);
+        println!("\n\nEXECUTING FRAME: {}\n\n", name);
 
         let mut current_pc = self.pc;
         let bytecode = &self.bytecode;
@@ -209,12 +209,20 @@ impl Frame {
                         // TODO: Change the hardcoded max_locals value and handle env args array
                         call_stack.push_frame(method_name, bytecode, 10, vec![]);
 
+                        //TODO: Solve clone duplication issue
                         let mut top_frame = call_stack
                             .current_frame()
                             .expect("Could not acquire top frame")
                             .clone();
 
                         top_frame.execute_frame(class_file, runtime_data_area, call_stack);
+
+                        if let Some(popped_frame) = call_stack.pop_frame() {
+                            println!(
+                                "\n\nFINISHED EXECUTING FRAME: {}\n\n",
+                                popped_frame.method_name.expect("Failed to get method name")
+                            );
+                        }
 
                         //TODO: Handle external class methods
                     }

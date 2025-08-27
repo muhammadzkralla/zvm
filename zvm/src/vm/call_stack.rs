@@ -16,13 +16,6 @@ impl CallStack {
         }
     }
 
-    // FRAME:
-    // pub method_name: Option<String>,
-    // pub operand_stack: OperandStack,
-    // pub local_variables: LocalVariables,
-    // pub pc: usize,
-    // pub bytecode: Vec<u8>,
-
     //TODO: Handle pushing frames
     pub fn push_frame(
         &mut self,
@@ -75,7 +68,7 @@ impl CallStack {
             frame.execute_frame(class_file, runtime_data_area, self);
 
             println!(
-                "FINISHED EXECUTING FRAME: {}",
+                "\n\nFINISHED EXECUTING FRAME: {}\n\n",
                 frame.method_name.expect("Failed to get method name")
             );
         }
