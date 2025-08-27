@@ -1,6 +1,7 @@
 use crate::vm::value::Value;
 
 /// Operand Stack for a call stack method execution frame
+#[derive(Clone)]
 pub struct OperandStack {
     stack: Vec<Value>,
 }

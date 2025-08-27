@@ -7,6 +7,7 @@ use crate::{
 };
 
 /// Method execution stack call frame
+#[derive(Clone)]
 pub struct Frame {
     pub method_name: Option<String>,
     pub operand_stack: OperandStack,
@@ -81,9 +82,10 @@ impl Frame {
                         if let Some((class_name, field_name, _)) =
                             class_file.get_field_info(field_ref)
                         {
-                            runtime_data_area
-                                .static_fields
-                                .insert(class_name.clone(), value.clone());
+                            runtime_data_area.static_fields.insert(
+                                format!("{}.{}", class_name.clone(), field_name.clone()),
+                                value.clone(),
+                            );
                             println!("  putstatic {}.{} = {:?}", class_name, field_name, value);
                         }
                     }
@@ -101,9 +103,9 @@ impl Frame {
                         self.operand_stack
                             .push(Value::Reference("System.out".to_string()));
                         println!("  getstatic System.out");
-                    } else if field_ref == 21 || field_ref == 30 {
+                    } else if field_ref == 13 || field_ref == 25 {
                         // Main.num1 or Main.num2
-                        let field_name = if field_ref == 21 {
+                        let field_name = if field_ref == 13 {
                             "Main.num1"
                         } else {
                             "Main.num2"
@@ -111,6 +113,9 @@ impl Frame {
                         if let Some(value) = runtime_data_area.static_fields.get(field_name) {
                             self.operand_stack.push(value.clone());
                             println!("  getstatic {} = {:?}", field_name, value);
+                        } else {
+                            println!("Could not find field_name: {}", field_name);
+                            println!("Static Fields: {:?}", runtime_data_area.static_fields);
                         }
                     }
                 }
@@ -132,7 +137,7 @@ impl Frame {
 
                     let method_ref = (index_high << 8) | index_low;
 
-                    if method_ref == 15 || method_ref == 27 {
+                    if method_ref == 19 || method_ref == 30 {
                         // PrintStream.println
                         if let Some(arg) = self.operand_stack.pop() {
                             if let Some(_print_stream) = self.operand_stack.pop() {
@@ -204,11 +209,12 @@ impl Frame {
                         // TODO: Change the hardcoded max_locals value and handle env args array
                         call_stack.push_frame(method_name, bytecode, 10, vec![]);
 
-                        // let top_frame = call_stack
-                        //     .current_frame()
-                        //     .expect("Could not acquire top frame");
-                        //
-                        // top_frame.execute_frame(class_file, runtime_data_area, call_stack);
+                        let mut top_frame = call_stack
+                            .current_frame()
+                            .expect("Could not acquire top frame")
+                            .clone();
+
+                        top_frame.execute_frame(class_file, runtime_data_area, call_stack);
 
                         //TODO: Handle external class methods
                     }
