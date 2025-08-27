@@ -71,12 +71,14 @@ impl CallStack {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
     ) {
-        while !self.is_empty() {
-            let mut frame = self.pop_frame().expect("Failed to acquire frame");
+    while let Some(mut frame) = self.pop_frame() {
+        frame.execute_frame(class_file, runtime_data_area, self);
 
-            frame.execute_frame(class_file, runtime_data_area);
-        }
-    }
+        println!(
+            "FINISHED EXECUTING FRAME: {}",
+            frame.method_name.expect("Failed to get method name")
+        );
+    }}
 
     //TODO: Handle getting current call stack size
     pub fn size(&self) -> usize {

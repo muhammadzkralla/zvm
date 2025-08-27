@@ -1,7 +1,8 @@
 use crate::{
-    parser::{class_file::ClassFile, opcode::Opcode},
+    parser::{class_file::ClassFile, method_info::MethodInfo, opcode::Opcode},
     vm::{
-        local::LocalVariables, operand_stack::OperandStack, runtime::RuntimeDataArea, value::Value,
+        call_stack::CallStack, local::LocalVariables, operand_stack::OperandStack,
+        runtime::RuntimeDataArea, value::Value,
     },
 };
 
@@ -29,6 +30,7 @@ impl Frame {
         &mut self,
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
+        call_stack: &mut CallStack,
     ) {
         let name = self.method_name.clone().expect("Failed to get method name");
 
@@ -160,6 +162,55 @@ impl Frame {
                         );
 
                         //TODO: Complete implementation
+                        let params_count = self.count_method_params(&descriptor);
+                        let mut params = Vec::new();
+
+                        for _ in 0..params_count {
+                            if let Some(arg) = self.operand_stack.pop() {
+                                params.push(arg);
+                            }
+                        }
+
+                        params.reverse();
+
+                        // Handle local class method
+                        let method_info = match class_file.find_method(&method_name) {
+                            Some(method) => method,
+                            None => {
+                                println!("No {} method found", method_name);
+                                return;
+                            }
+                        };
+
+                        // I assume that there will be always one attribute and it's the code attribute
+                        let attribute_info = &method_info.attributes[0];
+                        let info_bytes = &attribute_info.info;
+
+                        // Extract code_length (four big-endian bytes) from info_bytes[4..8]
+                        let code_length = u32::from_be_bytes([
+                            info_bytes[4],
+                            info_bytes[5],
+                            info_bytes[6],
+                            info_bytes[7],
+                        ]) as usize;
+
+                        // Extract bytecode from info_bytes[8..8+code_length]
+                        let bytecode = info_bytes[8..8 + code_length].to_vec();
+
+                        let method_name = class_file
+                            .get_utf8(method_info.name_index)
+                            .expect("Failed to get method name");
+
+                        // TODO: Change the hardcoded max_locals value and handle env args array
+                        call_stack.push_frame(method_name, bytecode, 10, vec![]);
+
+                        // let top_frame = call_stack
+                        //     .current_frame()
+                        //     .expect("Could not acquire top frame");
+                        //
+                        // top_frame.execute_frame(class_file, runtime_data_area, call_stack);
+
+                        //TODO: Handle external class methods
                     }
                 }
                 Opcode::Return => {
@@ -172,5 +223,10 @@ impl Frame {
             }
             current_pc += 1;
         }
+    }
+
+    fn count_method_params(&self, descriptor: &str) -> usize {
+        //TODO: Implement later
+        0
     }
 }
