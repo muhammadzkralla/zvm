@@ -126,6 +126,19 @@ impl ClassFile {
         }
     }
 
+    pub fn find_method(&self, name: &str) -> Option<MethodInfo> {
+        for method_info in self.methods.iter() {
+            let name_index = method_info.name_index;
+            if let Some(method_name) = self.get_utf8(name_index) {
+                if method_name == name {
+                    return Some(method_info.clone());
+                }
+            }
+        }
+
+        return None;
+    }
+
     /// Retrieves a string constant from the constant pool.
     pub fn get_string(&self, index: u16) -> Option<String> {
         if let Some(CpInfo::String { string_index }) = self.constant_pool.get(index as usize) {

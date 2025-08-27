@@ -1,11 +1,13 @@
 use crate::{
     parser::{class_file::ClassFile, opcode::Opcode},
     vm::{
-        local::LocalVariables, operand_stack::OperandStack, runtime::RuntimeDataArea, value::Value,
+        call_stack::CallStack, local::LocalVariables, operand_stack::OperandStack,
+        runtime::RuntimeDataArea, value::Value,
     },
 };
 
 /// Method execution stack call frame
+#[derive(Clone)]
 pub struct Frame {
     pub method_name: Option<String>,
     pub operand_stack: OperandStack,
@@ -29,10 +31,11 @@ impl Frame {
         &mut self,
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
+        call_stack: &mut CallStack,
     ) {
         let name = self.method_name.clone().expect("Failed to get method name");
 
-        println!("\nEXECUTING FRAME: {}", name);
+        println!("\n\nEXECUTING FRAME: {}\n\n", name);
 
         let mut current_pc = self.pc;
         let bytecode = &self.bytecode;
@@ -79,9 +82,10 @@ impl Frame {
                         if let Some((class_name, field_name, _)) =
                             class_file.get_field_info(field_ref)
                         {
-                            runtime_data_area
-                                .static_fields
-                                .insert(class_name.clone(), value.clone());
+                            runtime_data_area.static_fields.insert(
+                                format!("{}.{}", class_name.clone(), field_name.clone()),
+                                value.clone(),
+                            );
                             println!("  putstatic {}.{} = {:?}", class_name, field_name, value);
                         }
                     }
@@ -99,9 +103,9 @@ impl Frame {
                         self.operand_stack
                             .push(Value::Reference("System.out".to_string()));
                         println!("  getstatic System.out");
-                    } else if field_ref == 21 || field_ref == 30 {
+                    } else if field_ref == 13 || field_ref == 25 {
                         // Main.num1 or Main.num2
-                        let field_name = if field_ref == 21 {
+                        let field_name = if field_ref == 13 {
                             "Main.num1"
                         } else {
                             "Main.num2"
@@ -109,6 +113,9 @@ impl Frame {
                         if let Some(value) = runtime_data_area.static_fields.get(field_name) {
                             self.operand_stack.push(value.clone());
                             println!("  getstatic {} = {:?}", field_name, value);
+                        } else {
+                            println!("Could not find field_name: {}", field_name);
+                            println!("Static Fields: {:?}", runtime_data_area.static_fields);
                         }
                     }
                 }
@@ -130,7 +137,7 @@ impl Frame {
 
                     let method_ref = (index_high << 8) | index_low;
 
-                    if method_ref == 15 || method_ref == 27 {
+                    if method_ref == 19 || method_ref == 30 {
                         // PrintStream.println
                         if let Some(arg) = self.operand_stack.pop() {
                             if let Some(_print_stream) = self.operand_stack.pop() {
@@ -160,6 +167,64 @@ impl Frame {
                         );
 
                         //TODO: Complete implementation
+                        let params_count = self.count_method_params(&descriptor);
+                        let mut params = Vec::new();
+
+                        for _ in 0..params_count {
+                            if let Some(arg) = self.operand_stack.pop() {
+                                params.push(arg);
+                            }
+                        }
+
+                        params.reverse();
+
+                        // Handle local class method
+                        let method_info = match class_file.find_method(&method_name) {
+                            Some(method) => method,
+                            None => {
+                                println!("No {} method found", method_name);
+                                return;
+                            }
+                        };
+
+                        // I assume that there will be always one attribute and it's the code attribute
+                        let attribute_info = &method_info.attributes[0];
+                        let info_bytes = &attribute_info.info;
+
+                        // Extract code_length (four big-endian bytes) from info_bytes[4..8]
+                        let code_length = u32::from_be_bytes([
+                            info_bytes[4],
+                            info_bytes[5],
+                            info_bytes[6],
+                            info_bytes[7],
+                        ]) as usize;
+
+                        // Extract bytecode from info_bytes[8..8+code_length]
+                        let bytecode = info_bytes[8..8 + code_length].to_vec();
+
+                        let method_name = class_file
+                            .get_utf8(method_info.name_index)
+                            .expect("Failed to get method name");
+
+                        // TODO: Change the hardcoded max_locals value and handle env args array
+                        call_stack.push_frame(method_name, bytecode, 10, vec![]);
+
+                        //TODO: Solve clone duplication issue
+                        let mut top_frame = call_stack
+                            .current_frame()
+                            .expect("Could not acquire top frame")
+                            .clone();
+
+                        top_frame.execute_frame(class_file, runtime_data_area, call_stack);
+
+                        if let Some(popped_frame) = call_stack.pop_frame() {
+                            println!(
+                                "\n\nFINISHED EXECUTING FRAME: {}\n\n",
+                                popped_frame.method_name.expect("Failed to get method name")
+                            );
+                        }
+
+                        //TODO: Handle external class methods
                     }
                 }
                 Opcode::Return => {
@@ -172,5 +237,10 @@ impl Frame {
             }
             current_pc += 1;
         }
+    }
+
+    fn count_method_params(&self, descriptor: &str) -> usize {
+        //TODO: Implement later
+        0
     }
 }

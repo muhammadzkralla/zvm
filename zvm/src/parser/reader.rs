@@ -93,8 +93,6 @@ impl Reader {
         println!("PARSING THE CLASS FILE IS OVER");
         println!("Current Offset Value: 0x{:04X}", self.buffer.offset);
         println!("Bytes Processed: {}", self.buffer.offset);
-
-        self.test_parsing_fields_and_methods();
     }
 
     pub fn get_class_file(&self) -> ClassFile {

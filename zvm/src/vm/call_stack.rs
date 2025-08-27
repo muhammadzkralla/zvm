@@ -16,13 +16,6 @@ impl CallStack {
         }
     }
 
-    // FRAME:
-    // pub method_name: Option<String>,
-    // pub operand_stack: OperandStack,
-    // pub local_variables: LocalVariables,
-    // pub pc: usize,
-    // pub bytecode: Vec<u8>,
-
     //TODO: Handle pushing frames
     pub fn push_frame(
         &mut self,
@@ -71,10 +64,13 @@ impl CallStack {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
     ) {
-        while !self.is_empty() {
-            let mut frame = self.pop_frame().expect("Failed to acquire frame");
+        while let Some(mut frame) = self.pop_frame() {
+            frame.execute_frame(class_file, runtime_data_area, self);
 
-            frame.execute_frame(class_file, runtime_data_area);
+            println!(
+                "\n\nFINISHED EXECUTING FRAME: {}\n\n",
+                frame.method_name.expect("Failed to get method name")
+            );
         }
     }
 

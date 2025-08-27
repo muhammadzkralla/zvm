@@ -32,7 +32,7 @@ impl Vm {
 
     /// Executes the `<clinit>` (class initializer) method of the loaded class file
     pub fn execute_clinit(&mut self) {
-        let clinit_method = match self.find_method("<clinit>".to_string()) {
+        let clinit_method = match self.class_file.find_method("<clinit>") {
             Some(method) => method,
             None => {
                 println!("No <clinit> method found");
@@ -58,7 +58,7 @@ impl Vm {
     }
 
     pub fn execute_main(&mut self) {
-        let main_method = match self.find_method("main".to_string()) {
+        let main_method = match self.class_file.find_method("main") {
             Some(method) => method,
             None => {
                 println!("No main method found");
@@ -94,6 +94,7 @@ impl Vm {
         self.execute_main();
 
         // Execute class static initializer
+        //TODO: <clinit> execution should not be pushed to the call stack and preprocessed
         self.execute_clinit();
 
         let size = self.call_stack.size();
@@ -108,19 +109,5 @@ impl Vm {
         println!("\nIS THE CALL STACK EMPTY NOW? {}", flag);
 
         println!("\nJVM execution completed.");
-    }
-
-    /// Finds the `<clinit>` method from the loaded class file if it exists
-    fn find_method(&self, name: String) -> Option<MethodInfo> {
-        for method_info in self.class_file.methods.iter() {
-            let name_index = method_info.name_index;
-            if let Some(method_name) = self.class_file.get_utf8(name_index) {
-                if method_name == name {
-                    return Some(method_info.clone());
-                }
-            }
-        }
-
-        return None;
     }
 }
