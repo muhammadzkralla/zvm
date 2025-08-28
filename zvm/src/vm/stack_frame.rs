@@ -96,26 +96,28 @@ impl Frame {
                     let index_high = bytecode[current_pc] as u16;
                     current_pc += 1;
                     let index_low = bytecode[current_pc] as u16;
+
+                    // AS SPECIFIED BY THE SPECS:
+                    // (byte1 << 8) | byte2
                     let field_ref = (index_high << 8) | index_low;
 
-                    if field_ref == 7 {
-                        // System.out
-                        self.operand_stack
-                            .push(Value::Reference("System.out".to_string()));
-                        println!("  getstatic System.out");
-                    } else if field_ref == 13 || field_ref == 25 {
-                        // Main.num1 or Main.num2
-                        let field_name = if field_ref == 13 {
-                            "Main.num1"
+                    //TODO: Handle all java standard classes
+                    if let Some((class_name, field_name, descriptor)) =
+                        class_file.get_field_info(field_ref)
+                    {
+                        println!("GETSTATIC: {}.{}:{}", class_name, field_name, descriptor);
+                        //TODO: Handle all java standard classes
+                        if class_name == "java/lang/System" {
+                            self.operand_stack
+                                .push(Value::Reference("System.out".to_string()));
+                            println!("  getstatic System.out");
                         } else {
-                            "Main.num2"
-                        };
-                        if let Some(value) = runtime_data_area.static_fields.get(field_name) {
-                            self.operand_stack.push(value.clone());
-                            println!("  getstatic {} = {:?}", field_name, value);
-                        } else {
-                            println!("Could not find field_name: {}", field_name);
-                            println!("Static Fields: {:?}", runtime_data_area.static_fields);
+                            let static_field = format!("{}.{}", class_name, field_name);
+                            if let Some(value) = runtime_data_area.static_fields.get(&static_field)
+                            {
+                                self.operand_stack.push(value.clone());
+                                println!("  getstatic {} = {:?}", field_name, value);
+                            }
                         }
                     }
                 }
@@ -137,16 +139,26 @@ impl Frame {
 
                     let method_ref = (index_high << 8) | index_low;
 
-                    if method_ref == 19 || method_ref == 30 {
-                        // PrintStream.println
-                        if let Some(arg) = self.operand_stack.pop() {
-                            if let Some(_print_stream) = self.operand_stack.pop() {
-                                match arg {
-                                    Value::Object(s) => println!("{}", s),
-                                    Value::Int(i) => println!("{}", i),
-                                    _ => println!("{:?}", arg),
+                    //TODO: Handle all java standard classes
+                    if let Some((class_name, method_name, descriptor)) =
+                        class_file.get_method_info(method_ref)
+                    {
+                        println!(
+                            "INVOKEVIRTUAL: {}.{}:{}",
+                            class_name, method_name, descriptor
+                        );
+                        if class_name == "java/io/PrintStream" {
+                            if let Some(arg) = self.operand_stack.pop() {
+                                if let Some(_print_stream) = self.operand_stack.pop() {
+                                    match arg {
+                                        Value::Object(s) => println!("{}", s),
+                                        Value::Int(i) => println!("{}", i),
+                                        _ => println!("{:?}", arg),
+                                    }
                                 }
                             }
+                        } else {
+                            println!("Unsupported Class yet");
                         }
                     }
                 }
