@@ -253,7 +253,7 @@ impl InstructionExecutor {
                 .ok_or("Could not acquire top frame")?
                 .clone();
 
-            top_frame.execute_frame(class_file, runtime_data_area, call_stack);
+            top_frame.execute_frame(class_file, runtime_data_area, call_stack)?;
 
             if let Some(popped_frame) = call_stack.pop_frame() {
                 println!(
