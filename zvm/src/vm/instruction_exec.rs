@@ -229,6 +229,9 @@ impl InstructionExecutor {
             let attribute_info = &method_info.attributes[0];
             let info_bytes = &attribute_info.info;
 
+            // Extract max_locals (two big-endian bytes) from info_bytes[2..3]
+            let max_locals = u16::from_be_bytes([info_bytes[2], info_bytes[3]]);
+
             // Extract code_length (four big-endian bytes) from info_bytes[4..8]
             let code_length =
                 u32::from_be_bytes([info_bytes[4], info_bytes[5], info_bytes[6], info_bytes[7]])
@@ -242,7 +245,7 @@ impl InstructionExecutor {
                 .ok_or("Failed to get method name")?;
 
             // TODO: Change the hardcoded max_locals value and handle env args array
-            call_stack.push_frame(method_name, bytecode, 10, vec![]);
+            call_stack.push_frame(method_name, bytecode, max_locals as usize, params);
 
             //TODO: Solve clone duplication issue
             let mut top_frame = call_stack
