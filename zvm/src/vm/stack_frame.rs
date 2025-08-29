@@ -1,8 +1,8 @@
 use crate::{
     parser::{class_file::ClassFile, opcode::Opcode},
     vm::{
-        call_stack::CallStack, local::LocalVariables, operand_stack::OperandStack,
-        runtime::RuntimeDataArea, value::Value,
+        call_stack::CallStack, instruction_exec::InstructionExecutor, local::LocalVariables,
+        operand_stack::OperandStack, runtime::RuntimeDataArea,
     },
 };
 
@@ -32,227 +32,45 @@ impl Frame {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
         call_stack: &mut CallStack,
-    ) {
+    ) -> Result<(), String> {
         let name = self.method_name.clone().expect("Failed to get method name");
 
         println!("\n\nEXECUTING FRAME: {}\n\n", name);
 
         let mut current_pc = self.pc;
-        let bytecode = &self.bytecode;
+        let bytecode = self.bytecode.clone();
+
+        let instruction_executor = InstructionExecutor::new();
 
         while current_pc < bytecode.len() {
             let opcode = Opcode::from(bytecode[current_pc]);
             println!("Executing opcode: {:?} at pc: {}", opcode, current_pc);
 
-            match opcode {
-                Opcode::Bipush => {
-                    // Push byte value onto stack
-                    current_pc += 1;
-                    let value = bytecode[current_pc] as i32;
-                    self.operand_stack.push(Value::Int(value));
-
-                    println!("  bipush {}", value);
-                }
-                Opcode::Sipush => {
-                    // Push short value onto stack
-                    current_pc += 1;
-                    let high = bytecode[current_pc] as u16;
-                    current_pc += 1;
-                    let low = bytecode[current_pc] as u16;
-
-                    // AS SPECIFIED BY THE SPECS:
-                    // (byte1 << 8) | byte2
-                    let value = ((high << 8) | low) as i32;
-                    self.operand_stack.push(Value::Int(value));
-
-                    println!("  sipush {}", value);
-                }
-                Opcode::Putstatic => {
-                    // Store static field
-                    current_pc += 1;
-                    let index_high = bytecode[current_pc] as u16;
-                    current_pc += 1;
-                    let index_low = bytecode[current_pc] as u16;
-
-                    // AS SPECIFIED BY THE SPECS:
-                    // (indexbyte1 << 8) | indexbyte2
-                    let field_ref = (index_high << 8) | index_low;
-
-                    if let Some(value) = self.operand_stack.pop() {
-                        if let Some((class_name, field_name, _)) =
-                            class_file.get_field_info(field_ref)
-                        {
-                            runtime_data_area.static_fields.insert(
-                                format!("{}.{}", class_name.clone(), field_name.clone()),
-                                value.clone(),
-                            );
-                            println!("  putstatic {}.{} = {:?}", class_name, field_name, value);
-                        }
+            match instruction_executor.execute_instruction(
+                opcode,
+                self,
+                class_file,
+                runtime_data_area,
+                call_stack,
+                &mut current_pc,
+            ) {
+                Ok(should_continue_flag) => {
+                    if !should_continue_flag {
+                        // Since we outsourced control logic to another function, we can't
+                        // break from there, so this is a workaround for now
+                        //TODO: Clean later
+                        break;
                     }
                 }
-                Opcode::Getstatic => {
-                    // Get static field
-                    current_pc += 1;
-                    let index_high = bytecode[current_pc] as u16;
-                    current_pc += 1;
-                    let index_low = bytecode[current_pc] as u16;
-
-                    // AS SPECIFIED BY THE SPECS:
-                    // (byte1 << 8) | byte2
-                    let field_ref = (index_high << 8) | index_low;
-
-                    //TODO: Handle all java standard classes
-                    if let Some((class_name, field_name, descriptor)) =
-                        class_file.get_field_info(field_ref)
-                    {
-                        println!("GETSTATIC: {}.{}:{}", class_name, field_name, descriptor);
-                        //TODO: Handle all java standard classes
-                        if class_name == "java/lang/System" {
-                            self.operand_stack
-                                .push(Value::Reference("System.out".to_string()));
-                            println!("  getstatic System.out");
-                        } else {
-                            let static_field = format!("{}.{}", class_name, field_name);
-                            if let Some(value) = runtime_data_area.static_fields.get(&static_field)
-                            {
-                                self.operand_stack.push(value.clone());
-                                println!("  getstatic {} = {:?}", field_name, value);
-                            }
-                        }
-                    }
-                }
-                Opcode::Ldc => {
-                    // Load constant
-                    current_pc += 1;
-                    let index = bytecode[current_pc] as u16;
-                    if let Some(string_val) = class_file.get_string(index) {
-                        self.operand_stack.push(Value::Object(string_val.clone()));
-                        println!("  ldc \"{}\"", string_val);
-                    }
-                }
-                Opcode::Invokevirtual => {
-                    // Invoke virtual method
-                    current_pc += 1;
-                    let index_high = bytecode[current_pc] as u16;
-                    current_pc += 1;
-                    let index_low = bytecode[current_pc] as u16;
-
-                    let method_ref = (index_high << 8) | index_low;
-
-                    //TODO: Handle all java standard classes
-                    if let Some((class_name, method_name, descriptor)) =
-                        class_file.get_method_info(method_ref)
-                    {
-                        println!(
-                            "INVOKEVIRTUAL: {}.{}:{}",
-                            class_name, method_name, descriptor
-                        );
-                        if class_name == "java/io/PrintStream" {
-                            if let Some(arg) = self.operand_stack.pop() {
-                                if let Some(_print_stream) = self.operand_stack.pop() {
-                                    match arg {
-                                        Value::Object(s) => println!("{}", s),
-                                        Value::Int(i) => println!("{}", i),
-                                        _ => println!("{:?}", arg),
-                                    }
-                                }
-                            }
-                        } else {
-                            println!("Unsupported Class yet");
-                        }
-                    }
-                }
-                Opcode::Invokestatic => {
-                    current_pc += 1;
-                    let index_high = bytecode[current_pc] as u16;
-                    current_pc += 1;
-                    let index_low = bytecode[current_pc] as u16;
-
-                    let method_ref = (index_high << 8) | index_low;
-
-                    if let Some((class_name, method_name, descriptor)) =
-                        class_file.get_method_info(method_ref)
-                    {
-                        println!(
-                            "  invokestatic {}.{}:{}",
-                            class_name, method_name, descriptor
-                        );
-
-                        //TODO: Complete implementation
-                        let params_count = self.count_method_params(&descriptor);
-                        let mut params = Vec::new();
-
-                        for _ in 0..params_count {
-                            if let Some(arg) = self.operand_stack.pop() {
-                                params.push(arg);
-                            }
-                        }
-
-                        params.reverse();
-
-                        // Handle local class method
-                        let method_info = match class_file.find_method(&method_name) {
-                            Some(method) => method,
-                            None => {
-                                println!("No {} method found", method_name);
-                                return;
-                            }
-                        };
-
-                        // I assume that there will be always one attribute and it's the code attribute
-                        let attribute_info = &method_info.attributes[0];
-                        let info_bytes = &attribute_info.info;
-
-                        // Extract code_length (four big-endian bytes) from info_bytes[4..8]
-                        let code_length = u32::from_be_bytes([
-                            info_bytes[4],
-                            info_bytes[5],
-                            info_bytes[6],
-                            info_bytes[7],
-                        ]) as usize;
-
-                        // Extract bytecode from info_bytes[8..8+code_length]
-                        let bytecode = info_bytes[8..8 + code_length].to_vec();
-
-                        let method_name = class_file
-                            .get_utf8(method_info.name_index)
-                            .expect("Failed to get method name");
-
-                        // TODO: Change the hardcoded max_locals value and handle env args array
-                        call_stack.push_frame(method_name, bytecode, 10, vec![]);
-
-                        //TODO: Solve clone duplication issue
-                        let mut top_frame = call_stack
-                            .current_frame()
-                            .expect("Could not acquire top frame")
-                            .clone();
-
-                        top_frame.execute_frame(class_file, runtime_data_area, call_stack);
-
-                        if let Some(popped_frame) = call_stack.pop_frame() {
-                            println!(
-                                "\n\nFINISHED EXECUTING FRAME: {}\n\n",
-                                popped_frame.method_name.expect("Failed to get method name")
-                            );
-                        }
-
-                        //TODO: Handle external class methods
-                    }
-                }
-                Opcode::Return => {
-                    println!("  return");
-                    break;
-                }
-                _ => {
-                    println!("  Unhandled opcode in main: {:?}", opcode);
+                Err(e) => {
+                    eprintln!("Error executing instruction: {}", e);
+                    return Err(e);
                 }
             }
+
             current_pc += 1;
         }
-    }
 
-    fn count_method_params(&self, descriptor: &str) -> usize {
-        //TODO: Implement later
-        0
+        Ok(())
     }
 }

@@ -44,6 +44,9 @@ impl Vm {
         let attribute_info = &clinit_method.attributes[0];
         let info_bytes = &attribute_info.info;
 
+        // Extract max_locals (two big-endian bytes) from info_bytes[2..3]
+        let max_locals = u16::from_be_bytes([info_bytes[2], info_bytes[3]]);
+
         // Extract code_length (four big-endian bytes) from info_bytes[4..8]
         let code_length =
             u32::from_be_bytes([info_bytes[4], info_bytes[5], info_bytes[6], info_bytes[7]])
@@ -53,8 +56,12 @@ impl Vm {
         let bytecode = info_bytes[8..8 + code_length].to_vec();
 
         // TODO: Change the hardcoded max_locals value and handle env args array
-        self.call_stack
-            .push_frame("<clinit>".to_string(), bytecode, 10, vec![]);
+        self.call_stack.push_frame(
+            "<clinit>".to_string(),
+            bytecode,
+            max_locals as usize,
+            vec![],
+        );
     }
 
     pub fn execute_main(&mut self) {
@@ -70,6 +77,9 @@ impl Vm {
         let attribute_info = &main_method.attributes[0];
         let info_bytes = &attribute_info.info;
 
+        // Extract max_locals (two big-endian bytes) from info_bytes[2..3]
+        let max_locals = u16::from_be_bytes([info_bytes[2], info_bytes[3]]);
+
         // Extract code_length (four big-endian bytes) from info_bytes[4..8]
         let code_length =
             u32::from_be_bytes([info_bytes[4], info_bytes[5], info_bytes[6], info_bytes[7]])
@@ -78,9 +88,9 @@ impl Vm {
         // Extract bytecode from info_bytes[8..8+code_length]
         let bytecode = info_bytes[8..8 + code_length].to_vec();
 
-        // TODO: Change the hardcoded max_locals value and handle env args array
+        // TODO: Handle env variables
         self.call_stack
-            .push_frame("main".to_string(), bytecode, 10, vec![]);
+            .push_frame("main".to_string(), bytecode, max_locals as usize, vec![]);
     }
 
     /// Runs the virtual machine with the given class file
