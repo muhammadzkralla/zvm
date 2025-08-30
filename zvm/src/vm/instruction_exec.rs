@@ -56,55 +56,56 @@ impl InstructionExecutor {
         }
     }
 
+    /// Push integer constant -1 onto the operand stack
     fn execute_iconst_m1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant -1 onto the operand stack
         frame.operand_stack.push(Value::Int(-1));
         println!("  iconst_m1");
         Ok(true)
     }
 
+    /// Push integer constant 0 onto the operand stack
     fn execute_iconst_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 0 onto the operand stack
         frame.operand_stack.push(Value::Int(0));
         println!("  iconst_0");
         Ok(true)
     }
 
+    /// Push integer constant 1 onto the operand stack
     fn execute_iconst_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 1 onto the operand stack
         frame.operand_stack.push(Value::Int(1));
         println!("  iconst_1");
         Ok(true)
     }
 
+    /// Push integer constant 2 onto the operand stack
     fn execute_iconst_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 2 onto the operand stack
         frame.operand_stack.push(Value::Int(2));
         println!("  iconst_2");
         Ok(true)
     }
 
+    /// Push integer constant 3 onto the operand stack
     fn execute_iconst_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 3 onto the operand stack
         frame.operand_stack.push(Value::Int(3));
         println!("  iconst_3");
         Ok(true)
     }
 
+    /// Push integer constant 4 onto the operand stack
     fn execute_iconst_4(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 4 onto the operand stack
         frame.operand_stack.push(Value::Int(4));
         println!("  iconst_4");
         Ok(true)
     }
 
+    /// Push integer constant 5 onto the operand stack
     fn execute_iconst_5(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 5 onto the operand stack
         frame.operand_stack.push(Value::Int(5));
         println!("  iconst_5");
         Ok(true)
     }
 
+    /// Push the next byte's value from the bytecode to the operand stack
     fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         *pc += 1;
         let value = frame.bytecode[*pc] as i32;
@@ -114,6 +115,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Push the next two bytes' value from the bytecode to the operand stack
+    /// after applying the indexing equation specified by the specs
     fn execute_sipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         *pc += 1;
         let high = frame.bytecode[*pc] as u16;
@@ -128,6 +131,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load a String value from the constant pool and push it to the operand stack
     fn execute_ldc(
         &self,
         frame: &mut Frame,
@@ -144,6 +148,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load the reference located at the index of the next byte's value in the bytecode
+    /// from the frame's local variables and push it to the operand stack
     fn execute_aload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
@@ -158,6 +164,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load the reference located at the index of 0
+    /// from the frame's local variables and push it to the operand stack
     fn execute_aload_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(0) {
             frame.operand_stack.push(value.clone());
@@ -169,6 +177,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load the reference located at the index of 1
+    /// from the frame's local variables and push it to the operand stack
     fn execute_aload_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(1) {
             frame.operand_stack.push(value.clone());
@@ -180,6 +190,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load the reference located at the index of 2
+    /// from the frame's local variables and push it to the operand stack
     fn execute_aload_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(2) {
             frame.operand_stack.push(value.clone());
@@ -191,6 +203,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load the reference located at the index of 3
+    /// from the frame's local variables and push it to the operand stack
     fn execute_aload_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(3) {
             frame.operand_stack.push(value.clone());
@@ -202,6 +216,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load a reference value from an array and push it to the operand stack
     fn execute_aaload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         //TODO: Handle missing index and array ref and StackOverFlowException
         if let Some(Value::Int(index)) = frame.operand_stack.pop() {
@@ -226,12 +241,16 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Breaks the current frame's execution loop
     fn execute_return(&self) -> Result<bool, String> {
         println!("  return");
         // Signal to break the execution loop
         Ok(false)
     }
 
+    /// Load a static field reference located at the index of the next two bytes' value in the bytecode
+    /// after applying the indexing equation specified by the specs from the constant pool
+    /// inside the runtime static fields and push it to the operand stack
     fn execute_getstatic(
         &self,
         frame: &mut Frame,
@@ -269,6 +288,9 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Put a static field reference located at the index of the next two bytes' value in the bytecode
+    /// after applying the indexing equation specified by the specs from the constant pool and
+    /// insert it in the runtime static fields
     fn execute_putstatic(
         &self,
         frame: &mut Frame,
@@ -296,6 +318,10 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load a non-static method reference located at the index of the next two bytes' value in the bytecode
+    /// after applying the indexing equation specified by the specs from the constant pool
+    /// and invoke it
+    /// (Needs an object reference, resolved at runtime with dynamic dispatch)
     fn execute_invokevirtual(
         &self,
         frame: &mut Frame,
@@ -336,6 +362,10 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load a static method reference located at the index of the next two bytes' value in the bytecode
+    /// after applying the indexing equation specified by the specs from the constant pool
+    /// and invoke it
+    /// (No object needed, resolved at compile time)
     fn execute_invokestatic(
         &self,
         frame: &mut Frame,
@@ -399,10 +429,8 @@ impl InstructionExecutor {
                 .get_utf8(method_info.name_index)
                 .ok_or("Failed to get method name")?;
 
-            // TODO: Change the hardcoded max_locals value and handle env args array
             call_stack.push_frame(method_name, bytecode, max_locals as usize, params);
 
-            //TODO: Solve clone duplication issue
             let mut top_frame = call_stack
                 .current_frame()
                 .ok_or("Could not acquire top frame")?
