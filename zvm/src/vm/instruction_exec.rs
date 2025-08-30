@@ -20,11 +20,6 @@ impl InstructionExecutor {
         pc: &mut usize,
     ) -> Result<bool, String> {
         match opcode {
-            Opcode::Aload => self.execute_aload(frame, pc),
-            Opcode::Aload_0 => self.execute_aload_0(frame, pc),
-            Opcode::Aload_1 => self.execute_aload_1(frame, pc),
-            Opcode::Aload_2 => self.execute_aload_2(frame, pc),
-            Opcode::Aload_3 => self.execute_aload_3(frame, pc),
             Opcode::Iconstm1 => self.execute_iconst_m1(frame, pc),
             Opcode::Iconst0 => self.execute_iconst_0(frame, pc),
             Opcode::Iconst1 => self.execute_iconst_1(frame, pc),
@@ -32,23 +27,121 @@ impl InstructionExecutor {
             Opcode::Iconst3 => self.execute_iconst_3(frame, pc),
             Opcode::Iconst4 => self.execute_iconst_4(frame, pc),
             Opcode::Iconst5 => self.execute_iconst_5(frame, pc),
-            Opcode::Aaload => self.execute_aaload(frame, pc),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
-            Opcode::Putstatic => self.execute_putstatic(frame, class_file, runtime_data_area, pc),
-            Opcode::Getstatic => self.execute_getstatic(frame, class_file, runtime_data_area, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
+            Opcode::Aload => self.execute_aload(frame, pc),
+            Opcode::Aload_0 => self.execute_aload_0(frame, pc),
+            Opcode::Aload_1 => self.execute_aload_1(frame, pc),
+            Opcode::Aload_2 => self.execute_aload_2(frame, pc),
+            Opcode::Aload_3 => self.execute_aload_3(frame, pc),
+            Opcode::Aaload => self.execute_aaload(frame, pc),
+            Opcode::Return => self.execute_return(),
+            Opcode::Getstatic => self.execute_getstatic(frame, class_file, runtime_data_area, pc),
+            Opcode::Putstatic => self.execute_putstatic(frame, class_file, runtime_data_area, pc),
             Opcode::Invokevirtual => self.execute_invokevirtual(frame, class_file, pc),
+            Opcode::Invokespecial => {
+                // TODO: implement invokespecial
+                println!("  Unhandled opcode: {:?}", opcode);
+                Ok(true)
+            }
             Opcode::Invokestatic => {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
             }
-            Opcode::Return => self.execute_return(),
 
             _ => {
                 println!("  Unhandled opcode: {:?}", opcode);
                 Ok(true)
             }
         }
+    }
+
+    fn execute_iconst_m1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant -1 onto the operand stack
+        frame.operand_stack.push(Value::Int(-1));
+        println!("  iconst_m1");
+        Ok(true)
+    }
+
+    fn execute_iconst_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 0 onto the operand stack
+        frame.operand_stack.push(Value::Int(0));
+        println!("  iconst_0");
+        Ok(true)
+    }
+
+    fn execute_iconst_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 1 onto the operand stack
+        frame.operand_stack.push(Value::Int(1));
+        println!("  iconst_1");
+        Ok(true)
+    }
+
+    fn execute_iconst_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 2 onto the operand stack
+        frame.operand_stack.push(Value::Int(2));
+        println!("  iconst_2");
+        Ok(true)
+    }
+
+    fn execute_iconst_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 3 onto the operand stack
+        frame.operand_stack.push(Value::Int(3));
+        println!("  iconst_3");
+        Ok(true)
+    }
+
+    fn execute_iconst_4(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 4 onto the operand stack
+        frame.operand_stack.push(Value::Int(4));
+        println!("  iconst_4");
+        Ok(true)
+    }
+
+    fn execute_iconst_5(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 5 onto the operand stack
+        frame.operand_stack.push(Value::Int(5));
+        println!("  iconst_5");
+        Ok(true)
+    }
+
+    fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        *pc += 1;
+        let value = frame.bytecode[*pc] as i32;
+        frame.operand_stack.push(Value::Int(value));
+        println!("  bipush {}", value);
+
+        Ok(true)
+    }
+
+    fn execute_sipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        *pc += 1;
+        let high = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let low = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (byte1 << 8) | byte2
+        let value = ((high << 8) | low) as i32;
+        frame.operand_stack.push(Value::Int(value));
+        println!("  sipush {}", value);
+
+        Ok(true)
+    }
+
+    fn execute_ldc(
+        &self,
+        frame: &mut Frame,
+        class_file: &ClassFile,
+        pc: &mut usize,
+    ) -> Result<bool, String> {
+        *pc += 1;
+        let index = frame.bytecode[*pc] as u16;
+        if let Some(string_val) = class_file.get_string(index) {
+            frame.operand_stack.push(Value::Object(string_val.clone()));
+            println!("  ldc \"{}\"", string_val);
+        }
+
+        Ok(true)
     }
 
     fn execute_aload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
@@ -109,55 +202,6 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    fn execute_iconst_m1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant -1 onto the operand stack
-        frame.operand_stack.push(Value::Int(-1));
-        println!("  iconst_m1");
-        Ok(true)
-    }
-
-    fn execute_iconst_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 0 onto the operand stack
-        frame.operand_stack.push(Value::Int(0));
-        println!("  iconst_0");
-        Ok(true)
-    }
-
-    fn execute_iconst_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 1 onto the operand stack
-        frame.operand_stack.push(Value::Int(1));
-        println!("  iconst_1");
-        Ok(true)
-    }
-
-    fn execute_iconst_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 2 onto the operand stack
-        frame.operand_stack.push(Value::Int(2));
-        println!("  iconst_2");
-        Ok(true)
-    }
-
-    fn execute_iconst_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 3 onto the operand stack
-        frame.operand_stack.push(Value::Int(3));
-        println!("  iconst_3");
-        Ok(true)
-    }
-
-    fn execute_iconst_4(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 4 onto the operand stack
-        frame.operand_stack.push(Value::Int(4));
-        println!("  iconst_4");
-        Ok(true)
-    }
-
-    fn execute_iconst_5(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        // Push integer constant 5 onto the operand stack
-        frame.operand_stack.push(Value::Int(5));
-        println!("  iconst_5");
-        Ok(true)
-    }
-
     fn execute_aaload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         //TODO: Handle missing index and array ref and StackOverFlowException
         if let Some(Value::Int(index)) = frame.operand_stack.pop() {
@@ -182,54 +226,10 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        *pc += 1;
-        let value = frame.bytecode[*pc] as i32;
-        frame.operand_stack.push(Value::Int(value));
-        println!("  bipush {}", value);
-
-        Ok(true)
-    }
-
-    fn execute_sipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
-        *pc += 1;
-        let high = frame.bytecode[*pc] as u16;
-        *pc += 1;
-        let low = frame.bytecode[*pc] as u16;
-
-        // AS SPECIFIED BY THE SPECS: (byte1 << 8) | byte2
-        let value = ((high << 8) | low) as i32;
-        frame.operand_stack.push(Value::Int(value));
-        println!("  sipush {}", value);
-
-        Ok(true)
-    }
-
-    fn execute_putstatic(
-        &self,
-        frame: &mut Frame,
-        class_file: &ClassFile,
-        runtime_data_area: &mut RuntimeDataArea,
-        pc: &mut usize,
-    ) -> Result<bool, String> {
-        *pc += 1;
-        let index_high = frame.bytecode[*pc] as u16;
-        *pc += 1;
-        let index_low = frame.bytecode[*pc] as u16;
-
-        // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
-        let field_ref = (index_high << 8) | index_low;
-
-        if let Some(value) = frame.operand_stack.pop() {
-            if let Some((class_name, field_name, _)) = class_file.get_field_info(field_ref) {
-                runtime_data_area
-                    .static_fields
-                    .insert(format!("{}.{}", class_name, field_name), value.clone());
-                println!("  putstatic {}.{} = {:?}", class_name, field_name, value);
-            }
-        }
-
-        Ok(true)
+    fn execute_return(&self) -> Result<bool, String> {
+        println!("  return");
+        // Signal to break the execution loop
+        Ok(false)
     }
 
     fn execute_getstatic(
@@ -269,17 +269,28 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    fn execute_ldc(
+    fn execute_putstatic(
         &self,
         frame: &mut Frame,
         class_file: &ClassFile,
+        runtime_data_area: &mut RuntimeDataArea,
         pc: &mut usize,
     ) -> Result<bool, String> {
         *pc += 1;
-        let index = frame.bytecode[*pc] as u16;
-        if let Some(string_val) = class_file.get_string(index) {
-            frame.operand_stack.push(Value::Object(string_val.clone()));
-            println!("  ldc \"{}\"", string_val);
+        let index_high = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let index_low = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
+        let field_ref = (index_high << 8) | index_low;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            if let Some((class_name, field_name, _)) = class_file.get_field_info(field_ref) {
+                runtime_data_area
+                    .static_fields
+                    .insert(format!("{}.{}", class_name, field_name), value.clone());
+                println!("  putstatic {}.{} = {:?}", class_name, field_name, value);
+            }
         }
 
         Ok(true)
@@ -410,12 +421,6 @@ impl InstructionExecutor {
         }
 
         Ok(true)
-    }
-
-    fn execute_return(&self) -> Result<bool, String> {
-        println!("  return");
-        // Signal to break the execution loop
-        Ok(false)
     }
 
     fn count_method_params(&self, descriptor: &str) -> usize {
