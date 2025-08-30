@@ -1,5 +1,5 @@
 use crate::{
-    parser::{class_file::ClassFile, opcode::Opcode},
+    parser::class_file::ClassFile,
     vm::{runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
 

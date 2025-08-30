@@ -20,6 +20,19 @@ impl InstructionExecutor {
         pc: &mut usize,
     ) -> Result<bool, String> {
         match opcode {
+            Opcode::Aload => self.execute_aload(frame, pc),
+            Opcode::Aload_0 => self.execute_aload_0(frame, pc),
+            Opcode::Aload_1 => self.execute_aload_1(frame, pc),
+            Opcode::Aload_2 => self.execute_aload_2(frame, pc),
+            Opcode::Aload_3 => self.execute_aload_3(frame, pc),
+            Opcode::Iconstm1 => self.execute_iconst_m1(frame, pc),
+            Opcode::Iconst0 => self.execute_iconst_0(frame, pc),
+            Opcode::Iconst1 => self.execute_iconst_1(frame, pc),
+            Opcode::Iconst2 => self.execute_iconst_2(frame, pc),
+            Opcode::Iconst3 => self.execute_iconst_3(frame, pc),
+            Opcode::Iconst4 => self.execute_iconst_4(frame, pc),
+            Opcode::Iconst5 => self.execute_iconst_5(frame, pc),
+            Opcode::Aaload => self.execute_aaload(frame, pc),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Putstatic => self.execute_putstatic(frame, class_file, runtime_data_area, pc),
@@ -36,6 +49,137 @@ impl InstructionExecutor {
                 Ok(true)
             }
         }
+    }
+
+    fn execute_aload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        *pc += 1;
+        let index = frame.bytecode[*pc] as usize;
+
+        if let Some(value) = frame.local_variables.get(index) {
+            frame.operand_stack.push(value.clone());
+            println!("  aload = {:?}", value);
+        } else {
+            return Err("Local variable is not initialized".to_string());
+        }
+
+        Ok(true)
+    }
+
+    fn execute_aload_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(value) = frame.local_variables.get(0) {
+            frame.operand_stack.push(value.clone());
+            println!("  aload_0 = {:?}", value);
+        } else {
+            return Err("Local variable 0 is not initialized".to_string());
+        }
+
+        Ok(true)
+    }
+
+    fn execute_aload_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(value) = frame.local_variables.get(1) {
+            frame.operand_stack.push(value.clone());
+            println!("  aload_1 = {:?}", value);
+        } else {
+            return Err("Local variable 1 is not initialized".to_string());
+        }
+
+        Ok(true)
+    }
+
+    fn execute_aload_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(value) = frame.local_variables.get(2) {
+            frame.operand_stack.push(value.clone());
+            println!("  aload_2 = {:?}", value);
+        } else {
+            return Err("Local variable 2 is not initialized".to_string());
+        }
+
+        Ok(true)
+    }
+
+    fn execute_aload_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(value) = frame.local_variables.get(3) {
+            frame.operand_stack.push(value.clone());
+            println!("  aload_3 = {:?}", value);
+        } else {
+            return Err("Local variable 3 is not initialized".to_string());
+        }
+
+        Ok(true)
+    }
+
+    fn execute_iconst_m1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant -1 onto the operand stack
+        frame.operand_stack.push(Value::Int(-1));
+        println!("  iconst_m1");
+        Ok(true)
+    }
+
+    fn execute_iconst_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 0 onto the operand stack
+        frame.operand_stack.push(Value::Int(0));
+        println!("  iconst_0");
+        Ok(true)
+    }
+
+    fn execute_iconst_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 1 onto the operand stack
+        frame.operand_stack.push(Value::Int(1));
+        println!("  iconst_1");
+        Ok(true)
+    }
+
+    fn execute_iconst_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 2 onto the operand stack
+        frame.operand_stack.push(Value::Int(2));
+        println!("  iconst_2");
+        Ok(true)
+    }
+
+    fn execute_iconst_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 3 onto the operand stack
+        frame.operand_stack.push(Value::Int(3));
+        println!("  iconst_3");
+        Ok(true)
+    }
+
+    fn execute_iconst_4(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 4 onto the operand stack
+        frame.operand_stack.push(Value::Int(4));
+        println!("  iconst_4");
+        Ok(true)
+    }
+
+    fn execute_iconst_5(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        // Push integer constant 5 onto the operand stack
+        frame.operand_stack.push(Value::Int(5));
+        println!("  iconst_5");
+        Ok(true)
+    }
+
+    fn execute_aaload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        //TODO: Handle missing index and array ref and StackOverFlowException
+        if let Some(Value::Int(index)) = frame.operand_stack.pop() {
+            if let Some(arrayref) = frame.operand_stack.pop() {
+                match arrayref {
+                    Value::Array(ref arr) => {
+                        if index >= 0 && (index as usize) < arr.len() {
+                            let item = arr[index as usize].clone();
+                            frame.operand_stack.push(item.clone());
+                            println!("  aaload [{}] = {:?}", index, item);
+                        } else {
+                            return Err(format!("Array index out of bounds: {}", index));
+                        }
+                    }
+                    _ => {
+                        return Err(format!("Expected array reference, got {:?}", arrayref));
+                    }
+                }
+            }
+        }
+
+        Ok(true)
     }
 
     fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
