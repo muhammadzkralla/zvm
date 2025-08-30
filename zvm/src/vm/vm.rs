@@ -1,6 +1,6 @@
 use crate::{
-    parser::{attribute_info, class_file::ClassFile, method_info::MethodInfo, opcode::Opcode},
-    vm::{call_stack::CallStack, runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
+    parser::class_file::ClassFile,
+    vm::{call_stack::CallStack, runtime::RuntimeDataArea, value::Value},
 };
 
 /// The virtual machine
@@ -64,7 +64,7 @@ impl Vm {
         );
     }
 
-    pub fn execute_main(&mut self) {
+    pub fn execute_main(&mut self, args: Vec<String>) {
         let main_method = match self.class_file.find_method("main") {
             Some(method) => method,
             None => {
@@ -88,20 +88,30 @@ impl Vm {
         // Extract bytecode from info_bytes[8..8+code_length]
         let bytecode = info_bytes[8..8 + code_length].to_vec();
 
-        // TODO: Handle env variables
+        let mut env_args = Vec::new();
+        let mut array_values = Vec::new();
+
+        for arg in args.iter() {
+            let value = Value::Object(arg.clone());
+            array_values.push(value);
+        }
+
+        let array = Value::Array(array_values);
+        env_args.push(array);
+
         self.call_stack
-            .push_frame("main".to_string(), bytecode, max_locals as usize, vec![]);
+            .push_frame("main".to_string(), bytecode, max_locals as usize, env_args);
     }
 
     /// Runs the virtual machine with the given class file
-    pub fn run(&mut self, class_file: ClassFile) {
+    pub fn run(&mut self, class_file: ClassFile, args: Vec<String>) {
         println!("Starting JVM execution...\n");
 
         // Initialize class file
         self.init_class_file(class_file);
 
         // Execute the main method
-        self.execute_main();
+        self.execute_main(args);
 
         // Execute class static initializer
         //TODO: <clinit> execution should not be pushed to the call stack and preprocessed

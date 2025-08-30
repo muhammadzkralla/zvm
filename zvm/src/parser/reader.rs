@@ -17,12 +17,12 @@ pub struct Reader {
 impl Reader {
     /// Creates a new `Reader` instance by loading the `Main.class` file from disk
     /// and initializing a `Buffer` and an empty `ClassFile`
-    pub fn new() -> Self {
+    pub fn new(path: String) -> Self {
         // Will be used to store the bytes read from the class file in memory
         let mut buf = Vec::new();
 
         // Trying to open the class file and read it, safely of course, because Rust
-        let mut file = match File::open("Main.class") {
+        let mut file = match File::open(format!("{}.class", path)) {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("Error opening file: {}", e);
