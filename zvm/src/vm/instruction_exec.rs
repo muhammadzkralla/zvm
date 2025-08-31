@@ -1,15 +1,8 @@
 use crate::{
+    debug_log,
     parser::{class_file::ClassFile, opcode::Opcode},
     vm::{call_stack::CallStack, runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
-
-// Debug logging macro - controlled by feature flag
-macro_rules! debug_log {
-    ($($arg:tt)*) => {
-        #[cfg(feature = "debug-logging")]
-        println!($($arg)*);
-    };
-}
 
 pub struct InstructionExecutor;
 

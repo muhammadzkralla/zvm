@@ -1,18 +1,11 @@
 use crate::{
+    debug_log,
     parser::{class_file::ClassFile, opcode::Opcode},
     vm::{
         call_stack::CallStack, instruction_exec::InstructionExecutor, local::LocalVariables,
         operand_stack::OperandStack, runtime::RuntimeDataArea,
     },
 };
-
-// Debug logging macro - controlled by feature flag
-macro_rules! debug_log {
-    ($($arg:tt)*) => {
-        #[cfg(feature = "debug-logging")]
-        println!($($arg)*);
-    };
-}
 
 /// Method execution stack call frame
 #[derive(Clone)]

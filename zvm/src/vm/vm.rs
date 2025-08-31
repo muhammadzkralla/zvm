@@ -1,15 +1,8 @@
 use crate::{
+    debug_log,
     parser::class_file::ClassFile,
     vm::{call_stack::CallStack, runtime::RuntimeDataArea, value::Value},
 };
-
-// Debug logging macro - controlled by feature flag
-macro_rules! debug_log {
-    ($($arg:tt)*) => {
-        #[cfg(feature = "debug-logging")]
-        println!($($arg)*);
-    };
-}
 
 /// The virtual machine
 pub struct Vm {
