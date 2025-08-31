@@ -11,7 +11,6 @@ fn main() {
 
     let mut reader = Reader::new(class_file_path.clone());
     reader.read();
-    reader.print();
 
     let class_file = reader.get_class_file();
 

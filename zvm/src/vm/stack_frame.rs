@@ -6,6 +6,14 @@ use crate::{
     },
 };
 
+// Debug logging macro - controlled by feature flag
+macro_rules! debug_log {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "debug-logging")]
+        println!($($arg)*);
+    };
+}
+
 /// Method execution stack call frame
 #[derive(Clone)]
 pub struct Frame {
@@ -35,7 +43,7 @@ impl Frame {
     ) -> Result<(), String> {
         let name = self.method_name.clone().expect("Failed to get method name");
 
-        println!("\n\nEXECUTING FRAME: {}\n\n", name);
+        debug_log!("\n\nEXECUTING FRAME: {}\n\n", name);
 
         let mut current_pc = self.pc;
         let bytecode = self.bytecode.clone();
@@ -44,7 +52,7 @@ impl Frame {
 
         while current_pc < bytecode.len() {
             let opcode = Opcode::from(bytecode[current_pc]);
-            println!("Executing opcode: {:?} at pc: {}", opcode, current_pc);
+            debug_log!("Executing opcode: {:?} at pc: {}", opcode, current_pc);
 
             match instruction_executor.execute_instruction(
                 opcode,

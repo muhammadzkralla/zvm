@@ -3,6 +3,14 @@ use crate::{
     vm::{call_stack::CallStack, runtime::RuntimeDataArea, value::Value},
 };
 
+// Debug logging macro - controlled by feature flag
+macro_rules! debug_log {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "debug-logging")]
+        println!($($arg)*);
+    };
+}
+
 /// The virtual machine
 pub struct Vm {
     /// Stores runtime data such as static fields and heap
@@ -105,7 +113,7 @@ impl Vm {
 
     /// Runs the virtual machine with the given class file
     pub fn run(&mut self, class_file: ClassFile, args: Vec<String>) {
-        println!("Starting JVM execution...\n");
+        debug_log!("Starting JVM execution...\n");
 
         // Initialize class file
         self.init_class_file(class_file);
@@ -119,15 +127,15 @@ impl Vm {
 
         let size = self.call_stack.size();
 
-        println!("\nCURRENT CALL STACK SIZE? {}", size);
+        debug_log!("\nCURRENT CALL STACK SIZE? {}", size);
 
         self.call_stack
             .execute_frames(&self.class_file, &mut self.runtime_data);
 
         let flag = self.call_stack.is_empty();
 
-        println!("\nIS THE CALL STACK EMPTY NOW? {}", flag);
+        debug_log!("\nIS THE CALL STACK EMPTY NOW? {}", flag);
 
-        println!("\nJVM execution completed.");
+        debug_log!("\nJVM execution completed.");
     }
 }

@@ -3,6 +3,14 @@ use crate::{
     vm::{runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
 
+// Debug logging macro - controlled by feature flag
+macro_rules! debug_log {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "debug-logging")]
+        println!($($arg)*);
+    };
+}
+
 pub struct CallStack {
     pub frames: Vec<Frame>,
     max_depth: usize,
@@ -67,7 +75,7 @@ impl CallStack {
         while let Some(mut frame) = self.pop_frame() {
             frame.execute_frame(class_file, runtime_data_area, self);
 
-            println!(
+            debug_log!(
                 "\n\nFINISHED EXECUTING FRAME: {}\n\n",
                 frame.method_name.expect("Failed to get method name")
             );
