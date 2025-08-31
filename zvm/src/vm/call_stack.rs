@@ -1,4 +1,5 @@
 use crate::{
+    debug_log,
     parser::class_file::ClassFile,
     vm::{runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
@@ -67,7 +68,7 @@ impl CallStack {
         while let Some(mut frame) = self.pop_frame() {
             frame.execute_frame(class_file, runtime_data_area, self);
 
-            println!(
+            debug_log!(
                 "\n\nFINISHED EXECUTING FRAME: {}\n\n",
                 frame.method_name.expect("Failed to get method name")
             );

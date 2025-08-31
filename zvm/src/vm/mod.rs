@@ -1,6 +1,7 @@
 pub mod call_stack;
 pub mod instruction_exec;
 pub mod local;
+pub mod logging;
 pub mod operand_stack;
 pub mod runtime;
 pub mod stack_frame;

@@ -1,4 +1,5 @@
 use crate::{
+    debug_log,
     parser::{class_file::ClassFile, opcode::Opcode},
     vm::{call_stack::CallStack, runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
@@ -42,7 +43,7 @@ impl InstructionExecutor {
             Opcode::Invokevirtual => self.execute_invokevirtual(frame, class_file, pc),
             Opcode::Invokespecial => {
                 // TODO: implement invokespecial
-                println!("  Unhandled opcode: {:?}", opcode);
+                debug_log!("  Unhandled opcode: {:?}", opcode);
                 Ok(true)
             }
             Opcode::Invokestatic => {
@@ -50,7 +51,7 @@ impl InstructionExecutor {
             }
 
             _ => {
-                println!("  Unhandled opcode: {:?}", opcode);
+                debug_log!("  Unhandled opcode: {:?}", opcode);
                 Ok(true)
             }
         }
@@ -59,49 +60,49 @@ impl InstructionExecutor {
     /// Push integer constant -1 onto the operand stack
     fn execute_iconst_m1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(-1));
-        println!("  iconst_m1");
+        debug_log!("  iconst_m1");
         Ok(true)
     }
 
     /// Push integer constant 0 onto the operand stack
     fn execute_iconst_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(0));
-        println!("  iconst_0");
+        debug_log!("  iconst_0");
         Ok(true)
     }
 
     /// Push integer constant 1 onto the operand stack
     fn execute_iconst_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(1));
-        println!("  iconst_1");
+        debug_log!("  iconst_1");
         Ok(true)
     }
 
     /// Push integer constant 2 onto the operand stack
     fn execute_iconst_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(2));
-        println!("  iconst_2");
+        debug_log!("  iconst_2");
         Ok(true)
     }
 
     /// Push integer constant 3 onto the operand stack
     fn execute_iconst_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(3));
-        println!("  iconst_3");
+        debug_log!("  iconst_3");
         Ok(true)
     }
 
     /// Push integer constant 4 onto the operand stack
     fn execute_iconst_4(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(4));
-        println!("  iconst_4");
+        debug_log!("  iconst_4");
         Ok(true)
     }
 
     /// Push integer constant 5 onto the operand stack
     fn execute_iconst_5(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(5));
-        println!("  iconst_5");
+        debug_log!("  iconst_5");
         Ok(true)
     }
 
@@ -110,7 +111,7 @@ impl InstructionExecutor {
         *pc += 1;
         let value = frame.bytecode[*pc] as i32;
         frame.operand_stack.push(Value::Int(value));
-        println!("  bipush {}", value);
+        debug_log!("  bipush {}", value);
 
         Ok(true)
     }
@@ -126,7 +127,7 @@ impl InstructionExecutor {
         // AS SPECIFIED BY THE SPECS: (byte1 << 8) | byte2
         let value = ((high << 8) | low) as i32;
         frame.operand_stack.push(Value::Int(value));
-        println!("  sipush {}", value);
+        debug_log!("  sipush {}", value);
 
         Ok(true)
     }
@@ -142,7 +143,7 @@ impl InstructionExecutor {
         let index = frame.bytecode[*pc] as u16;
         if let Some(string_val) = class_file.get_string(index) {
             frame.operand_stack.push(Value::Object(string_val.clone()));
-            println!("  ldc \"{}\"", string_val);
+            debug_log!("  ldc \"{}\"", string_val);
         }
 
         Ok(true)
@@ -156,7 +157,7 @@ impl InstructionExecutor {
 
         if let Some(value) = frame.local_variables.get(index) {
             frame.operand_stack.push(value.clone());
-            println!("  aload = {:?}", value);
+            debug_log!("  aload = {:?}", value);
         } else {
             return Err("Local variable is not initialized".to_string());
         }
@@ -169,7 +170,7 @@ impl InstructionExecutor {
     fn execute_aload_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(0) {
             frame.operand_stack.push(value.clone());
-            println!("  aload_0 = {:?}", value);
+            debug_log!("  aload_0 = {:?}", value);
         } else {
             return Err("Local variable 0 is not initialized".to_string());
         }
@@ -182,7 +183,7 @@ impl InstructionExecutor {
     fn execute_aload_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(1) {
             frame.operand_stack.push(value.clone());
-            println!("  aload_1 = {:?}", value);
+            debug_log!("  aload_1 = {:?}", value);
         } else {
             return Err("Local variable 1 is not initialized".to_string());
         }
@@ -195,7 +196,7 @@ impl InstructionExecutor {
     fn execute_aload_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(2) {
             frame.operand_stack.push(value.clone());
-            println!("  aload_2 = {:?}", value);
+            debug_log!("  aload_2 = {:?}", value);
         } else {
             return Err("Local variable 2 is not initialized".to_string());
         }
@@ -208,7 +209,7 @@ impl InstructionExecutor {
     fn execute_aload_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(3) {
             frame.operand_stack.push(value.clone());
-            println!("  aload_3 = {:?}", value);
+            debug_log!("  aload_3 = {:?}", value);
         } else {
             return Err("Local variable 3 is not initialized".to_string());
         }
@@ -226,7 +227,7 @@ impl InstructionExecutor {
                         if index >= 0 && (index as usize) < arr.len() {
                             let item = arr[index as usize].clone();
                             frame.operand_stack.push(item.clone());
-                            println!("  aaload [{}] = {:?}", index, item);
+                            debug_log!("  aaload [{}] = {:?}", index, item);
                         } else {
                             return Err(format!("Array index out of bounds: {}", index));
                         }
@@ -243,7 +244,7 @@ impl InstructionExecutor {
 
     /// Breaks the current frame's execution loop
     fn execute_return(&self) -> Result<bool, String> {
-        println!("  return");
+        debug_log!("  return");
         // Signal to break the execution loop
         Ok(false)
     }
@@ -268,19 +269,19 @@ impl InstructionExecutor {
 
         //TODO: Handle all java standard classes
         if let Some((class_name, field_name, descriptor)) = class_file.get_field_info(field_ref) {
-            println!("GETSTATIC: {}.{}:{}", class_name, field_name, descriptor);
+            debug_log!("GETSTATIC: {}.{}:{}", class_name, field_name, descriptor);
 
             //TODO: Handle all java standard classes
             if class_name == "java/lang/System" {
                 frame
                     .operand_stack
                     .push(Value::Reference("System.out".to_string()));
-                println!("  getstatic System.out");
+                debug_log!("  getstatic System.out");
             } else {
                 let static_field = format!("{}.{}", class_name, field_name);
                 if let Some(value) = runtime_data_area.static_fields.get(&static_field) {
                     frame.operand_stack.push(value.clone());
-                    println!("  getstatic {} = {:?}", field_name, value);
+                    debug_log!("  getstatic {} = {:?}", field_name, value);
                 }
             }
         }
@@ -311,7 +312,7 @@ impl InstructionExecutor {
                 runtime_data_area
                     .static_fields
                     .insert(format!("{}.{}", class_name, field_name), value.clone());
-                println!("  putstatic {}.{} = {:?}", class_name, field_name, value);
+                debug_log!("  putstatic {}.{} = {:?}", class_name, field_name, value);
             }
         }
 
@@ -339,9 +340,11 @@ impl InstructionExecutor {
         //TODO: Handle all java standard classes
         if let Some((class_name, method_name, descriptor)) = class_file.get_method_info(method_ref)
         {
-            println!(
+            debug_log!(
                 "INVOKEVIRTUAL: {}.{}:{}",
-                class_name, method_name, descriptor
+                class_name,
+                method_name,
+                descriptor
             );
 
             if class_name == "java/io/PrintStream" {
@@ -355,7 +358,7 @@ impl InstructionExecutor {
                     }
                 }
             } else {
-                println!("Unsupported Class yet");
+                debug_log!("Unsupported Class yet");
             }
         }
 
@@ -384,9 +387,11 @@ impl InstructionExecutor {
 
         if let Some((class_name, method_name, descriptor)) = class_file.get_method_info(method_ref)
         {
-            println!(
+            debug_log!(
                 "  invokestatic {}.{}:{}",
-                class_name, method_name, descriptor
+                class_name,
+                method_name,
+                descriptor
             );
 
             //TODO: Complete implementation
@@ -405,7 +410,7 @@ impl InstructionExecutor {
             let method_info = match class_file.find_method(&method_name) {
                 Some(method) => method,
                 None => {
-                    println!("No {} method found", method_name);
+                    debug_log!("No {} method found", method_name);
                     return Ok(true);
                 }
             };
@@ -439,7 +444,7 @@ impl InstructionExecutor {
             top_frame.execute_frame(class_file, runtime_data_area, call_stack)?;
 
             if let Some(popped_frame) = call_stack.pop_frame() {
-                println!(
+                debug_log!(
                     "\n\nFINISHED EXECUTING FRAME: {}\n\n",
                     popped_frame.method_name.unwrap_or_default()
                 );
