@@ -1,4 +1,5 @@
 use crate::{
+    debug_log,
     parser::{class_file::ClassFile, opcode::Opcode},
     vm::{
         call_stack::CallStack, instruction_exec::InstructionExecutor, local::LocalVariables,
@@ -35,7 +36,7 @@ impl Frame {
     ) -> Result<(), String> {
         let name = self.method_name.clone().expect("Failed to get method name");
 
-        println!("\n\nEXECUTING FRAME: {}\n\n", name);
+        debug_log!("\n\nEXECUTING FRAME: {}\n\n", name);
 
         let mut current_pc = self.pc;
         let bytecode = self.bytecode.clone();
@@ -44,7 +45,7 @@ impl Frame {
 
         while current_pc < bytecode.len() {
             let opcode = Opcode::from(bytecode[current_pc]);
-            println!("Executing opcode: {:?} at pc: {}", opcode, current_pc);
+            debug_log!("Executing opcode: {:?} at pc: {}", opcode, current_pc);
 
             match instruction_executor.execute_instruction(
                 opcode,
