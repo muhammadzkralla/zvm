@@ -23,6 +23,7 @@ impl InstructionExecutor {
         pc: &mut usize,
     ) -> Result<bool, String> {
         match opcode {
+            //TODO: Remove obsolete params from some functions
             Opcode::Iconstm1 => self.execute_iconst_m1(frame, pc),
             Opcode::Iconst0 => self.execute_iconst_0(frame, pc),
             Opcode::Iconst1 => self.execute_iconst_1(frame, pc),
@@ -156,6 +157,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load an integer value at the index of the next byte's value from the bytecode
+    /// from the frame's local variables and push it to the operand stack
     fn execute_iload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
@@ -167,6 +170,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load an integer value at the index of 0
+    /// from the frame's local variables and push it to the operand stack
     fn execute_iload_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         let index = 0 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
@@ -177,6 +182,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load an integer value at the index of 1
+    /// from the frame's local variables and push it to the operand stack
     fn execute_iload_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         let index = 1 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
@@ -187,6 +194,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load an integer value at the index of 2
+    /// from the frame's local variables and push it to the operand stack
     fn execute_iload_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         let index = 2 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
@@ -197,6 +206,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Load an integer value at the index of 3
+    /// from the frame's local variables and push it to the operand stack
     fn execute_iload_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         let index = 3 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
@@ -514,23 +525,36 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Count the number of params passed to some function call
     fn count_method_params(&self, descriptor: &str) -> usize {
+        // Extract the characters in the descriptor string
+        // and initialize a final count variable and a loop pointer
         let chars: Vec<char> = descriptor.chars().collect();
         let mut count = 0;
         let mut i = 0;
 
+        // Find the opening parenthesis
         while i < chars.len() && chars[i] != '(' {
             i += 1;
         }
 
+        if i >= chars.len() {
+            debug_log!("Warning: Invalid method descriptor format: {}", descriptor);
+            return 0;
+        }
+
+        // Skip the opening '('
         i += 1;
 
+        // Keep parsing until hitting the closing parenthesis
         while i < chars.len() && chars[i] != ')' {
             match chars[i] {
+                // Primitive types take only one count
                 'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' => {
                     count += 1;
                     i += 1;
                 }
+                // Object types take only one count and they start with 'L' and end with ';'
                 'L' => {
                     count += 1;
                     i += 1;
@@ -538,18 +562,22 @@ impl InstructionExecutor {
                         i += 1;
                     }
 
+                    // Skip the ';'
                     if i < chars.len() {
                         i += 1;
                     }
                 }
+                // Array types take only one count and they start with '['
                 '[' => {
                     count += 1;
                     i += 1;
 
+                    // Skip all the array dimensions
                     while i < chars.len() && chars[i] == '[' {
                         i += 1;
                     }
 
+                    // Skip the component type
                     if i < chars.len() {
                         match chars[i] {
                             'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' => {
@@ -561,6 +589,7 @@ impl InstructionExecutor {
                                     i += 1;
                                 }
 
+                                // Skip the ';'
                                 if i < chars.len() {
                                     i += 1;
                                 }
@@ -583,6 +612,7 @@ impl InstructionExecutor {
             descriptor,
             count
         );
+
         count
     }
 }
