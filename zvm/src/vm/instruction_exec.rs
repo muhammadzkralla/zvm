@@ -160,6 +160,9 @@ impl InstructionExecutor {
     /// Load an integer value at the index of the next byte's value from the bytecode
     /// from the frame's local variables and push it to the operand stack
     fn execute_iload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        //TODO: I assume the variable will always be an integer type as specified by the specs
+        // I think we should do a check here, but I'll choose to keep the logic simple
+        // Same applies to the other iload_<n> instruction implementations
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
         if let Some(variable) = frame.local_variables.get(index) {
@@ -221,6 +224,9 @@ impl InstructionExecutor {
     /// Load the reference located at the index of the next byte's value in the bytecode
     /// from the frame's local variables and push it to the operand stack
     fn execute_aload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        //TODO: I assume the variable will always be a reference type as specified by the specs
+        // I think we should do a check here, but I'll choose to keep the logic simple
+        // Same applies to the other aload_<n> instruction implementations
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
 
