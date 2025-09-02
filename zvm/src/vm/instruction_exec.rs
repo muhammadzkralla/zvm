@@ -1,3 +1,5 @@
+use std::char;
+
 use crate::{
     debug_log,
     parser::{class_file::ClassFile, opcode::Opcode},
@@ -31,6 +33,11 @@ impl InstructionExecutor {
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
+            Opcode::Iload => self.execute_iload(frame, pc),
+            Opcode::Iload0 => self.execute_iload_0(frame, pc),
+            Opcode::Iload1 => self.execute_iload_1(frame, pc),
+            Opcode::Iload2 => self.execute_iload_2(frame, pc),
+            Opcode::Iload3 => self.execute_iload_3(frame, pc),
             Opcode::Aload => self.execute_aload(frame, pc),
             Opcode::Aload_0 => self.execute_aload_0(frame, pc),
             Opcode::Aload_1 => self.execute_aload_1(frame, pc),
@@ -144,6 +151,57 @@ impl InstructionExecutor {
         if let Some(string_val) = class_file.get_string(index) {
             frame.operand_stack.push(Value::Object(string_val.clone()));
             debug_log!("  ldc \"{}\"", string_val);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_iload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        *pc += 1;
+        let index = frame.bytecode[*pc] as usize;
+        if let Some(variable) = frame.local_variables.get(index) {
+            frame.operand_stack.push(variable.clone());
+            debug_log!("  iload \"{:?}\"", variable);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_iload_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        let index = 0 as usize;
+        if let Some(variable) = frame.local_variables.get(index) {
+            frame.operand_stack.push(variable.clone());
+            debug_log!("  iload_0 \"{:?}\"", variable);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_iload_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        let index = 1 as usize;
+        if let Some(variable) = frame.local_variables.get(index) {
+            frame.operand_stack.push(variable.clone());
+            debug_log!("  iload_1 \"{:?}\"", variable);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_iload_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        let index = 2 as usize;
+        if let Some(variable) = frame.local_variables.get(index) {
+            frame.operand_stack.push(variable.clone());
+            debug_log!("  iload_2 \"{:?}\"", variable);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_iload_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        let index = 3 as usize;
+        if let Some(variable) = frame.local_variables.get(index) {
+            frame.operand_stack.push(variable.clone());
+            debug_log!("  iload_3 \"{:?}\"", variable);
         }
 
         Ok(true)
@@ -457,7 +515,74 @@ impl InstructionExecutor {
     }
 
     fn count_method_params(&self, descriptor: &str) -> usize {
-        //TODO: Implement later
-        0
+        let chars: Vec<char> = descriptor.chars().collect();
+        let mut count = 0;
+        let mut i = 0;
+
+        while i < chars.len() && chars[i] != '(' {
+            i += 1;
+        }
+
+        i += 1;
+
+        while i < chars.len() && chars[i] != ')' {
+            match chars[i] {
+                'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' => {
+                    count += 1;
+                    i += 1;
+                }
+                'L' => {
+                    count += 1;
+                    i += 1;
+                    while i < chars.len() && chars[i] != ';' {
+                        i += 1;
+                    }
+
+                    if i < chars.len() {
+                        i += 1;
+                    }
+                }
+                '[' => {
+                    count += 1;
+                    i += 1;
+
+                    while i < chars.len() && chars[i] == '[' {
+                        i += 1;
+                    }
+
+                    if i < chars.len() {
+                        match chars[i] {
+                            'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' => {
+                                i += 1;
+                            }
+                            'L' => {
+                                i += 1;
+                                while i < chars.len() && chars[i] != ';' {
+                                    i += 1;
+                                }
+
+                                if i < chars.len() {
+                                    i += 1;
+                                }
+                            }
+                            _ => {
+                                debug_log!("Warning: Unknown array component type: {}", chars[i]);
+                                i += 1;
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    debug_log!("Warning: Unknown parameter type: {}", chars[i]);
+                    i += 1;
+                }
+            }
+        }
+        debug_log!(
+            "Method descriptor '{}' has {} parameters",
+            descriptor,
+            count
+        );
+        count
     }
 }
