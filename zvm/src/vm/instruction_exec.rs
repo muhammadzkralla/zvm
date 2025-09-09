@@ -325,6 +325,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop some value from the operand stack and check if it equals zero
     fn execute_ifeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value == 0 {
@@ -348,6 +349,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop some value from the operand stack and check if it doesn't equals zero
     fn execute_ifne(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value != 0 {
@@ -370,6 +372,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop some value from the operand stack and check if it is less than zero
     fn execute_iflt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value < 0 {
@@ -393,6 +396,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop some value from the operand stack and check if it is greater than or equal zero
     fn execute_ifge(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value >= 0 {
@@ -416,6 +420,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop some value from the operand stack and check if it is greater than zero
     fn execute_ifgt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value > 0 {
@@ -439,6 +444,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop some value from the operand stack and check if it is less than or equal zero
     fn execute_ifle(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value <= 0 {
