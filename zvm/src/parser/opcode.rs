@@ -23,6 +23,12 @@ pub enum Opcode {
     Aload_2 = 0x2C,       // 44
     Aload_3 = 0x2D,       // 45
     Aaload = 0x32,        // 50
+    Ifeq = 0x99,          // 153
+    Ifne = 0x9A,          // 154
+    Iflt = 0x9B,          // 155
+    Ifge = 0x9C,          // 156
+    Ifgt = 0x9D,          // 157
+    Ifle = 0x9E,          // 158
     Return = 0xB1,        // 177
     Getstatic = 0xB2,     // 178
     Putstatic = 0xB3,     // 179
@@ -55,6 +61,12 @@ impl From<u8> for Opcode {
             0x2C => Opcode::Aload_2,
             0x2D => Opcode::Aload_3,
             0x32 => Opcode::Aaload,
+            0x99 => Opcode::Ifeq,
+            0x9A => Opcode::Ifne,
+            0x9B => Opcode::Iflt,
+            0x9C => Opcode::Ifge,
+            0x9D => Opcode::Ifgt,
+            0x9E => Opcode::Ifle,
             0xB1 => Opcode::Return,
             0xB2 => Opcode::Getstatic,
             0xB3 => Opcode::Putstatic,
