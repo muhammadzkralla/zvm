@@ -53,6 +53,13 @@ impl InstructionExecutor {
             Opcode::Ifgt => self.execute_ifgt(frame, pc),
             Opcode::Ifle => self.execute_ifle(frame, pc),
 
+            Opcode::If_icmpeq => self.execute_if_icmpeq(frame, pc),
+            Opcode::If_icmpne => self.execute_if_icmpne(frame, pc),
+            Opcode::If_icmplt => self.execute_if_icmplt(frame, pc),
+            Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
+            Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
+            Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+
             Opcode::Return => self.execute_return(),
             Opcode::Getstatic => self.execute_getstatic(frame, class_file, runtime_data_area, pc),
             Opcode::Putstatic => self.execute_putstatic(frame, class_file, runtime_data_area, pc),
@@ -462,6 +469,156 @@ impl InstructionExecutor {
                 *pc += offset;
             } else {
                 *pc += 2;
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_if_icmpeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                if value1 == value2 {
+                    *pc += 1;
+                    let index_high = frame.bytecode[*pc] as u16;
+                    *pc += 1;
+                    let index_low = frame.bytecode[*pc] as u16;
+
+                    // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                    let offset = ((index_high << 8) | index_low) as usize;
+
+                    // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                    // not the current PC
+                    *pc -= 3;
+                    *pc += offset;
+                } else {
+                    *pc += 2;
+                }
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_if_icmpne(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                if value1 != value2 {
+                    *pc += 1;
+                    let index_high = frame.bytecode[*pc] as u16;
+                    *pc += 1;
+                    let index_low = frame.bytecode[*pc] as u16;
+
+                    // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                    let offset = ((index_high << 8) | index_low) as usize;
+
+                    // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                    // not the current PC
+                    *pc -= 3;
+                    *pc += offset;
+                } else {
+                    *pc += 2;
+                }
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_if_icmplt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                if value1 < value2 {
+                    *pc += 1;
+                    let index_high = frame.bytecode[*pc] as u16;
+                    *pc += 1;
+                    let index_low = frame.bytecode[*pc] as u16;
+
+                    // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                    let offset = ((index_high << 8) | index_low) as usize;
+
+                    // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                    // not the current PC
+                    *pc -= 3;
+                    *pc += offset;
+                } else {
+                    *pc += 2;
+                }
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_if_icmpge(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                if value1 >= value2 {
+                    *pc += 1;
+                    let index_high = frame.bytecode[*pc] as u16;
+                    *pc += 1;
+                    let index_low = frame.bytecode[*pc] as u16;
+
+                    // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                    let offset = ((index_high << 8) | index_low) as usize;
+
+                    // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                    // not the current PC
+                    *pc -= 3;
+                    *pc += offset;
+                } else {
+                    *pc += 2;
+                }
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_if_icmpgt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                if value1 > value2 {
+                    *pc += 1;
+                    let index_high = frame.bytecode[*pc] as u16;
+                    *pc += 1;
+                    let index_low = frame.bytecode[*pc] as u16;
+
+                    // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                    let offset = ((index_high << 8) | index_low) as usize;
+
+                    // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                    // not the current PC
+                    *pc -= 3;
+                    *pc += offset;
+                } else {
+                    *pc += 2;
+                }
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_if_icmple(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                if value1 <= value2 {
+                    *pc += 1;
+                    let index_high = frame.bytecode[*pc] as u16;
+                    *pc += 1;
+                    let index_low = frame.bytecode[*pc] as u16;
+
+                    // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                    let offset = ((index_high << 8) | index_low) as usize;
+
+                    // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                    // not the current PC
+                    *pc -= 3;
+                    *pc += offset;
+                } else {
+                    *pc += 2;
+                }
             }
         }
 
