@@ -29,6 +29,12 @@ pub enum Opcode {
     Ifge = 0x9C,          // 156
     Ifgt = 0x9D,          // 157
     Ifle = 0x9E,          // 158
+    If_icmpeq = 0x9F,     // 159
+    If_icmpne = 0xA0,     // 160
+    If_icmplt = 0xA1,     // 161
+    If_icmpge = 0xA2,     // 162
+    If_icmpgt = 0xA3,     // 163
+    If_icmple = 0xA4,     // 164
     Return = 0xB1,        // 177
     Getstatic = 0xB2,     // 178
     Putstatic = 0xB3,     // 179
@@ -67,6 +73,12 @@ impl From<u8> for Opcode {
             0x9C => Opcode::Ifge,
             0x9D => Opcode::Ifgt,
             0x9E => Opcode::Ifle,
+            0x9F => Opcode::If_icmpeq,
+            0xA0 => Opcode::If_icmpne,
+            0xA1 => Opcode::If_icmplt,
+            0xA2 => Opcode::If_icmpge,
+            0xA3 => Opcode::If_icmpgt,
+            0xA4 => Opcode::If_icmple,
             0xB1 => Opcode::Return,
             0xB2 => Opcode::Getstatic,
             0xB3 => Opcode::Putstatic,
