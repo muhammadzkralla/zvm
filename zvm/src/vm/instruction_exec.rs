@@ -23,28 +23,27 @@ impl InstructionExecutor {
         pc: &mut usize,
     ) -> Result<bool, String> {
         match opcode {
-            //TODO: Remove obsolete params from some functions
-            Opcode::Iconstm1 => self.execute_iconst_m1(frame, pc),
-            Opcode::Iconst0 => self.execute_iconst_0(frame, pc),
-            Opcode::Iconst1 => self.execute_iconst_1(frame, pc),
-            Opcode::Iconst2 => self.execute_iconst_2(frame, pc),
-            Opcode::Iconst3 => self.execute_iconst_3(frame, pc),
-            Opcode::Iconst4 => self.execute_iconst_4(frame, pc),
-            Opcode::Iconst5 => self.execute_iconst_5(frame, pc),
+            Opcode::Iconstm1 => self.execute_iconst_m1(frame),
+            Opcode::Iconst0 => self.execute_iconst_0(frame),
+            Opcode::Iconst1 => self.execute_iconst_1(frame),
+            Opcode::Iconst2 => self.execute_iconst_2(frame),
+            Opcode::Iconst3 => self.execute_iconst_3(frame),
+            Opcode::Iconst4 => self.execute_iconst_4(frame),
+            Opcode::Iconst5 => self.execute_iconst_5(frame),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
             Opcode::Iload => self.execute_iload(frame, pc),
-            Opcode::Iload0 => self.execute_iload_0(frame, pc),
-            Opcode::Iload1 => self.execute_iload_1(frame, pc),
-            Opcode::Iload2 => self.execute_iload_2(frame, pc),
-            Opcode::Iload3 => self.execute_iload_3(frame, pc),
+            Opcode::Iload0 => self.execute_iload_0(frame),
+            Opcode::Iload1 => self.execute_iload_1(frame),
+            Opcode::Iload2 => self.execute_iload_2(frame),
+            Opcode::Iload3 => self.execute_iload_3(frame),
             Opcode::Aload => self.execute_aload(frame, pc),
-            Opcode::Aload_0 => self.execute_aload_0(frame, pc),
-            Opcode::Aload_1 => self.execute_aload_1(frame, pc),
-            Opcode::Aload_2 => self.execute_aload_2(frame, pc),
-            Opcode::Aload_3 => self.execute_aload_3(frame, pc),
-            Opcode::Aaload => self.execute_aaload(frame, pc),
+            Opcode::Aload_0 => self.execute_aload_0(frame),
+            Opcode::Aload_1 => self.execute_aload_1(frame),
+            Opcode::Aload_2 => self.execute_aload_2(frame),
+            Opcode::Aload_3 => self.execute_aload_3(frame),
+            Opcode::Aaload => self.execute_aaload(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -78,49 +77,49 @@ impl InstructionExecutor {
     }
 
     /// Push integer constant -1 onto the operand stack
-    fn execute_iconst_m1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iconst_m1(&self, frame: &mut Frame) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(-1));
         debug_log!("  iconst_m1");
         Ok(true)
     }
 
     /// Push integer constant 0 onto the operand stack
-    fn execute_iconst_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iconst_0(&self, frame: &mut Frame) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(0));
         debug_log!("  iconst_0");
         Ok(true)
     }
 
     /// Push integer constant 1 onto the operand stack
-    fn execute_iconst_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iconst_1(&self, frame: &mut Frame) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(1));
         debug_log!("  iconst_1");
         Ok(true)
     }
 
     /// Push integer constant 2 onto the operand stack
-    fn execute_iconst_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iconst_2(&self, frame: &mut Frame) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(2));
         debug_log!("  iconst_2");
         Ok(true)
     }
 
     /// Push integer constant 3 onto the operand stack
-    fn execute_iconst_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iconst_3(&self, frame: &mut Frame) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(3));
         debug_log!("  iconst_3");
         Ok(true)
     }
 
     /// Push integer constant 4 onto the operand stack
-    fn execute_iconst_4(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iconst_4(&self, frame: &mut Frame) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(4));
         debug_log!("  iconst_4");
         Ok(true)
     }
 
     /// Push integer constant 5 onto the operand stack
-    fn execute_iconst_5(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iconst_5(&self, frame: &mut Frame) -> Result<bool, String> {
         frame.operand_stack.push(Value::Int(5));
         debug_log!("  iconst_5");
         Ok(true)
@@ -187,7 +186,7 @@ impl InstructionExecutor {
 
     /// Load an integer value at the index of 0
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iload_0(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 0 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
@@ -199,7 +198,7 @@ impl InstructionExecutor {
 
     /// Load an integer value at the index of 1
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iload_1(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 1 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
@@ -211,7 +210,7 @@ impl InstructionExecutor {
 
     /// Load an integer value at the index of 2
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iload_2(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 2 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
@@ -223,7 +222,7 @@ impl InstructionExecutor {
 
     /// Load an integer value at the index of 3
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iload_3(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 3 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
@@ -254,7 +253,7 @@ impl InstructionExecutor {
 
     /// Load the reference located at the index of 0
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_0(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_aload_0(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(0) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_0 = {:?}", value);
@@ -267,7 +266,7 @@ impl InstructionExecutor {
 
     /// Load the reference located at the index of 1
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_1(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_aload_1(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(1) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_1 = {:?}", value);
@@ -280,7 +279,7 @@ impl InstructionExecutor {
 
     /// Load the reference located at the index of 2
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_2(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_aload_2(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(2) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_2 = {:?}", value);
@@ -293,7 +292,7 @@ impl InstructionExecutor {
 
     /// Load the reference located at the index of 3
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_3(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_aload_3(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(value) = frame.local_variables.get(3) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_3 = {:?}", value);
@@ -305,7 +304,7 @@ impl InstructionExecutor {
     }
 
     /// Load a reference value from an array and push it to the operand stack
-    fn execute_aaload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_aaload(&self, frame: &mut Frame) -> Result<bool, String> {
         //TODO: Handle missing index and array ref and StackOverFlowException
         if let Some(Value::Int(index)) = frame.operand_stack.pop() {
             if let Some(arrayref) = frame.operand_stack.pop() {
