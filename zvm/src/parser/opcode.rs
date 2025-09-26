@@ -23,6 +23,11 @@ pub enum Opcode {
     Aload_2 = 0x2C,       // 44
     Aload_3 = 0x2D,       // 45
     Aaload = 0x32,        // 50
+    Istore = 0x36,        // 54
+    Istore_0 = 0x3B,      // 59
+    Istore_1 = 0x3C,      // 60
+    Istore_2 = 0x3D,      // 61
+    Istore_3 = 0x3E,      // 62
     Ifeq = 0x99,          // 153
     Ifne = 0x9A,          // 154
     Iflt = 0x9B,          // 155
@@ -67,6 +72,11 @@ impl From<u8> for Opcode {
             0x2C => Opcode::Aload_2,
             0x2D => Opcode::Aload_3,
             0x32 => Opcode::Aaload,
+            0x36 => Opcode::Istore,
+            0x3B => Opcode::Istore_0,
+            0x3C => Opcode::Istore_1,
+            0x3D => Opcode::Istore_2,
+            0x3E => Opcode::Istore_3,
             0x99 => Opcode::Ifeq,
             0x9A => Opcode::Ifne,
             0x9B => Opcode::Iflt,

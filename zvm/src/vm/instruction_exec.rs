@@ -44,6 +44,11 @@ impl InstructionExecutor {
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
             Opcode::Aaload => self.execute_aaload(frame),
+            Opcode::Istore => self.execute_istore(frame, pc),
+            Opcode::Istore_0 => self.execute_istore_0(frame),
+            Opcode::Istore_1 => self.execute_istore_1(frame),
+            Opcode::Istore_2 => self.execute_istore_2(frame),
+            Opcode::Istore_3 => self.execute_istore_3(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -323,6 +328,62 @@ impl InstructionExecutor {
                     }
                 }
             }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_istore(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        *pc += 1;
+        let index = frame.bytecode[*pc] as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_istore_0(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 0 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_0[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_istore_1(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 1 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_1[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_istore_2(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 2 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_2[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_istore_3(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 3 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_3[{}] = {:?}", index, value);
         }
 
         Ok(true)
