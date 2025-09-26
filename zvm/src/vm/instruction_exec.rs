@@ -49,6 +49,12 @@ impl InstructionExecutor {
             Opcode::Istore_1 => self.execute_istore_1(frame),
             Opcode::Istore_2 => self.execute_istore_2(frame),
             Opcode::Istore_3 => self.execute_istore_3(frame),
+            Opcode::Iadd => self.execute_iadd(frame),
+            Opcode::Isub => self.execute_isub(frame),
+            Opcode::Imul => self.execute_imul(frame),
+            Opcode::Idiv => self.execute_idiv(frame),
+            Opcode::Irem => self.execute_irem(frame),
+            Opcode::Ineg => self.execute_ineg(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -384,6 +390,84 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_3[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    fn execute_iadd(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 + value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 - value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_imul(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 * value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 / value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_irem(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                debug_log!("value1: {}, value2: {}", value1, value2);
+
+                let value = value1 % value2;
+
+                debug_log!("value: {}", value);
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            debug_log!("value: {}", value);
+
+            let negated_value = -value;
+
+            debug_log!("negated_value: {}", negated_value);
+
+            frame.operand_stack.push(Value::Int(negated_value));
         }
 
         Ok(true)
