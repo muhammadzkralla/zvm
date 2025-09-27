@@ -339,6 +339,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Store an integer value popped from the operand stack
+    /// at the index of the next byte's value from the bytecode in the frame's local variables
     fn execute_istore(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
@@ -351,6 +353,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 0 in the frame's local variables
     fn execute_istore_0(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 0 as usize;
 
@@ -362,6 +366,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 1 in the frame's local variables
     fn execute_istore_1(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 1 as usize;
 
@@ -373,6 +379,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 2 in the frame's local variables
     fn execute_istore_2(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 2 as usize;
 
@@ -384,6 +392,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 3 in the frame's local variables
     fn execute_istore_3(&self, frame: &mut Frame) -> Result<bool, String> {
         let index = 3 as usize;
 
@@ -395,7 +405,11 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two integer values from the operand stack, adds them, and then
+    /// push the result back onto the operand stack
     fn execute_iadd(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 let value = value1 + value2;
@@ -407,7 +421,11 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two integer values from the operand stack, subtracts them, and then
+    /// push the result back onto the operand stack
     fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 let value = value1 - value2;
@@ -419,7 +437,11 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two integer values from the operand stack, multiplies them, and then
+    /// push the result back onto the operand stack
     fn execute_imul(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 let value = value1 * value2;
@@ -431,7 +453,12 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two integer values from the operand stack, divides them, and then
+    /// push the result back onto the operand stack
     fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 let value = value1 / value2;
@@ -443,7 +470,12 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two integer values from the operand stack, calculates their remainder,
+    /// and then push the result back onto the operand stack
     fn execute_irem(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 debug_log!("value1: {}, value2: {}", value1, value2);
@@ -459,7 +491,11 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop an integer value from the operand stack, negates it, and then
+    /// push the result back onto the operand stack
     fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             debug_log!("value: {}", value);
 
