@@ -44,6 +44,17 @@ impl InstructionExecutor {
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
             Opcode::Aaload => self.execute_aaload(frame),
+            Opcode::Istore => self.execute_istore(frame, pc),
+            Opcode::Istore_0 => self.execute_istore_0(frame),
+            Opcode::Istore_1 => self.execute_istore_1(frame),
+            Opcode::Istore_2 => self.execute_istore_2(frame),
+            Opcode::Istore_3 => self.execute_istore_3(frame),
+            Opcode::Iadd => self.execute_iadd(frame),
+            Opcode::Isub => self.execute_isub(frame),
+            Opcode::Imul => self.execute_imul(frame),
+            Opcode::Idiv => self.execute_idiv(frame),
+            Opcode::Irem => self.execute_irem(frame),
+            Opcode::Ineg => self.execute_ineg(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -323,6 +334,176 @@ impl InstructionExecutor {
                     }
                 }
             }
+        }
+
+        Ok(true)
+    }
+
+    /// Store an integer value popped from the operand stack
+    /// at the index of the next byte's value from the bytecode in the frame's local variables
+    fn execute_istore(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        *pc += 1;
+        let index = frame.bytecode[*pc] as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 0 in the frame's local variables
+    fn execute_istore_0(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 0 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_0[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 1 in the frame's local variables
+    fn execute_istore_1(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 1 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_1[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 2 in the frame's local variables
+    fn execute_istore_2(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 2 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_2[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    /// Store an integer value popped from the operand stack
+    /// at the index of the 3 in the frame's local variables
+    fn execute_istore_3(&self, frame: &mut Frame) -> Result<bool, String> {
+        let index = 3 as usize;
+
+        if let Some(value) = frame.operand_stack.pop() {
+            frame.local_variables.set(index, value.clone());
+            debug_log!("  istore_3[{}] = {:?}", index, value);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two integer values from the operand stack, adds them, and then
+    /// push the result back onto the operand stack
+    fn execute_iadd(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 + value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two integer values from the operand stack, subtracts them, and then
+    /// push the result back onto the operand stack
+    fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 - value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two integer values from the operand stack, multiplies them, and then
+    /// push the result back onto the operand stack
+    fn execute_imul(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 * value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two integer values from the operand stack, divides them, and then
+    /// push the result back onto the operand stack
+    fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let value = value1 / value2;
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two integer values from the operand stack, calculates their remainder,
+    /// and then push the result back onto the operand stack
+    fn execute_irem(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                debug_log!("value1: {}, value2: {}", value1, value2);
+
+                let value = value1 % value2;
+
+                debug_log!("value: {}", value);
+
+                frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop an integer value from the operand stack, negates it, and then
+    /// push the result back onto the operand stack
+    fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            debug_log!("value: {}", value);
+
+            let negated_value = -value;
+
+            debug_log!("negated_value: {}", negated_value);
+
+            frame.operand_stack.push(Value::Int(negated_value));
         }
 
         Ok(true)
