@@ -12,6 +12,7 @@ pub enum Opcode {
     Bipush = 0x10,        // 16
     Sipush = 0x11,        // 17
     Ldc = 0x12,           // 18
+    Ldc2_w = 0x14,        // 20
     Iload = 0x15,         // 21
     Iload0 = 0x1A,        // 26
     Iload1 = 0x1B,        // 27
@@ -67,6 +68,7 @@ impl From<u8> for Opcode {
             0x10 => Opcode::Bipush,
             0x11 => Opcode::Sipush,
             0x12 => Opcode::Ldc,
+            0x14 => Opcode::Ldc2_w,
             0x15 => Opcode::Iload,
             0x1A => Opcode::Iload0,
             0x1B => Opcode::Iload1,

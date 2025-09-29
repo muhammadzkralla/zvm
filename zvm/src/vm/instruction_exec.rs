@@ -2,7 +2,7 @@ use std::char;
 
 use crate::{
     debug_log,
-    parser::{class_file::ClassFile, opcode::Opcode},
+    parser::{class_file::ClassFile, constant_pool_info::CpInfo, opcode::Opcode},
     vm::{call_stack::CallStack, runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
 
@@ -33,6 +33,7 @@ impl InstructionExecutor {
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
+            Opcode::Ldc2_w => self.execute_ldc2_w(frame, class_file, pc),
             Opcode::Iload => self.execute_iload(frame, pc),
             Opcode::Iload0 => self.execute_iload_0(frame),
             Opcode::Iload1 => self.execute_iload_1(frame),
@@ -174,6 +175,37 @@ impl InstructionExecutor {
         if let Some(string_val) = class_file.get_string(index) {
             frame.operand_stack.push(Value::Object(string_val.clone()));
             debug_log!("  ldc \"{}\"", string_val);
+        }
+
+        Ok(true)
+    }
+
+    /// Load a long or a double value from the constant pool and push it to the operand stack
+    fn execute_ldc2_w(
+        &self,
+        frame: &mut Frame,
+        class_file: &ClassFile,
+        pc: &mut usize,
+    ) -> Result<bool, String> {
+        *pc += 1;
+        let index_high = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let index_low = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
+        let index = ((index_high << 8) | index_low) as usize;
+
+        if let Some(CpInfo::Long {
+            high_bytes,
+            low_bytes,
+        }) = class_file.constant_pool.get(index)
+        {
+            // AS SPECIFIED BY THE SPECS:
+            // ((long) high_bytes << 32) + low_bytes
+            let long = ((*high_bytes as i64) << 32) + (*low_bytes as i64);
+            let value = Value::Long(long);
+            frame.operand_stack.push(value.clone());
+            debug_log!("  ldc2_w {:?}", value);
         }
 
         Ok(true)
@@ -922,6 +954,7 @@ impl InstructionExecutor {
                         match arg {
                             Value::Object(s) => println!("{}", s),
                             Value::Int(i) => println!("{}", i),
+                            Value::Long(l) => println!("{}", l),
                             _ => println!("{:?}", arg),
                         }
                     }
