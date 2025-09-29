@@ -650,7 +650,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop an long value from the operand stack, negates it, and then
+    /// Pop a long value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
     fn execute_lneg(&self, frame: &mut Frame) -> Result<bool, String> {
         //TODO: Handle insufficient number of values in the operand stack
