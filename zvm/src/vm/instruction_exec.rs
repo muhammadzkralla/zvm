@@ -2,7 +2,7 @@ use std::char;
 
 use crate::{
     debug_log,
-    parser::{class_file::ClassFile, opcode::Opcode},
+    parser::{class_file::ClassFile, constant_pool_info::CpInfo, opcode::Opcode},
     vm::{call_stack::CallStack, runtime::RuntimeDataArea, stack_frame::Frame, value::Value},
 };
 
@@ -33,28 +33,52 @@ impl InstructionExecutor {
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
+            Opcode::Ldc2_w => self.execute_ldc2_w(frame, class_file, pc),
+            //TODO: For now, both Iload and Lload instructions can be handled by
+            // the same function as I don't do type validation yet, but in the future,
+            // this should be separated
             Opcode::Iload => self.execute_iload(frame, pc),
+            Opcode::Lload => self.execute_iload(frame, pc),
             Opcode::Iload0 => self.execute_iload_0(frame),
             Opcode::Iload1 => self.execute_iload_1(frame),
             Opcode::Iload2 => self.execute_iload_2(frame),
             Opcode::Iload3 => self.execute_iload_3(frame),
+            Opcode::Lload0 => self.execute_iload_0(frame),
+            Opcode::Lload1 => self.execute_iload_1(frame),
+            Opcode::Lload2 => self.execute_iload_2(frame),
+            Opcode::Lload3 => self.execute_iload_3(frame),
             Opcode::Aload => self.execute_aload(frame, pc),
             Opcode::Aload_0 => self.execute_aload_0(frame),
             Opcode::Aload_1 => self.execute_aload_1(frame),
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
             Opcode::Aaload => self.execute_aaload(frame),
+            //TODO: For now, both Istore_<n> and Lstore_<n>
+            // instructions can be handled by the same function
+            // as I don't do type validation yet, but in the future,
+            // this should be separated
             Opcode::Istore => self.execute_istore(frame, pc),
+            Opcode::Lstore => self.execute_istore(frame, pc),
             Opcode::Istore_0 => self.execute_istore_0(frame),
             Opcode::Istore_1 => self.execute_istore_1(frame),
             Opcode::Istore_2 => self.execute_istore_2(frame),
             Opcode::Istore_3 => self.execute_istore_3(frame),
+            Opcode::Lstore_0 => self.execute_istore_0(frame),
+            Opcode::Lstore_1 => self.execute_istore_1(frame),
+            Opcode::Lstore_2 => self.execute_istore_2(frame),
+            Opcode::Lstore_3 => self.execute_istore_3(frame),
             Opcode::Iadd => self.execute_iadd(frame),
+            Opcode::Ladd => self.execute_ladd(frame),
             Opcode::Isub => self.execute_isub(frame),
+            Opcode::Lsub => self.execute_lsub(frame),
             Opcode::Imul => self.execute_imul(frame),
+            Opcode::Lmul => self.execute_lmul(frame),
             Opcode::Idiv => self.execute_idiv(frame),
+            Opcode::Ldiv => self.execute_ldiv(frame),
             Opcode::Irem => self.execute_irem(frame),
+            Opcode::Lrem => self.execute_lrem(frame),
             Opcode::Ineg => self.execute_ineg(frame),
+            Opcode::Lneg => self.execute_lneg(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -174,6 +198,37 @@ impl InstructionExecutor {
         if let Some(string_val) = class_file.get_string(index) {
             frame.operand_stack.push(Value::Object(string_val.clone()));
             debug_log!("  ldc \"{}\"", string_val);
+        }
+
+        Ok(true)
+    }
+
+    /// Load a long or a double value from the constant pool and push it to the operand stack
+    fn execute_ldc2_w(
+        &self,
+        frame: &mut Frame,
+        class_file: &ClassFile,
+        pc: &mut usize,
+    ) -> Result<bool, String> {
+        *pc += 1;
+        let index_high = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let index_low = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
+        let index = ((index_high << 8) | index_low) as usize;
+
+        if let Some(CpInfo::Long {
+            high_bytes,
+            low_bytes,
+        }) = class_file.constant_pool.get(index)
+        {
+            // AS SPECIFIED BY THE SPECS:
+            // ((long) high_bytes << 32) + low_bytes
+            let long = ((*high_bytes as i64) << 32) + (*low_bytes as i64);
+            let value = Value::Long(long);
+            frame.operand_stack.push(value.clone());
+            debug_log!("  ldc2_w {:?}", value);
         }
 
         Ok(true)
@@ -412,9 +467,25 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 + value2;
+                let value = value1.wrapping_add(value2);
 
                 frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two long values from the operand stack, adds them, and then
+    /// push the result back onto the operand stack
+    fn execute_ladd(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let value = value1.wrapping_add(value2);
+
+                frame.operand_stack.push(Value::Long(value));
             }
         }
 
@@ -428,9 +499,25 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 - value2;
+                let value = value1.wrapping_sub(value2);
 
                 frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two long values from the operand stack, subtracts them, and then
+    /// push the result back onto the operand stack
+    fn execute_lsub(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let value = value1.wrapping_sub(value2);
+
+                frame.operand_stack.push(Value::Long(value));
             }
         }
 
@@ -444,9 +531,25 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 * value2;
+                let value = value1.wrapping_mul(value2);
 
                 frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two long values from the operand stack, multiplies them, and then
+    /// push the result back onto the operand stack
+    fn execute_lmul(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let value = value1.wrapping_mul(value2);
+
+                frame.operand_stack.push(Value::Long(value));
             }
         }
 
@@ -461,9 +564,26 @@ impl InstructionExecutor {
         //TODO: Handle division by zero
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 / value2;
+                let value = value1.wrapping_div(value2);
 
                 frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two long values from the operand stack, divides them, and then
+    /// push the result back onto the operand stack
+    fn execute_ldiv(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let value = value1.wrapping_div(value2);
+
+                frame.operand_stack.push(Value::Long(value));
             }
         }
 
@@ -480,11 +600,32 @@ impl InstructionExecutor {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 debug_log!("value1: {}, value2: {}", value1, value2);
 
-                let value = value1 % value2;
+                let value = value1.wrapping_rem(value2);
 
                 debug_log!("value: {}", value);
 
                 frame.operand_stack.push(Value::Int(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two long values from the operand stack, calculates their remainder,
+    /// and then push the result back onto the operand stack
+    fn execute_lrem(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                debug_log!("value1: {}, value2: {}", value1, value2);
+
+                let value = value1.wrapping_rem(value2);
+
+                debug_log!("value: {}", value);
+
+                frame.operand_stack.push(Value::Long(value));
             }
         }
 
@@ -499,11 +640,29 @@ impl InstructionExecutor {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             debug_log!("value: {}", value);
 
-            let negated_value = -value;
+            let negated_value = value.wrapping_neg();
 
             debug_log!("negated_value: {}", negated_value);
 
             frame.operand_stack.push(Value::Int(negated_value));
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a long value from the operand stack, negates it, and then
+    /// push the result back onto the operand stack
+    fn execute_lneg(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
+            debug_log!("value: {}", value);
+
+            let negated_value = value.wrapping_neg();
+
+            debug_log!("negated_value: {}", negated_value);
+
+            frame.operand_stack.push(Value::Long(negated_value));
         }
 
         Ok(true)
@@ -922,6 +1081,7 @@ impl InstructionExecutor {
                         match arg {
                             Value::Object(s) => println!("{}", s),
                             Value::Int(i) => println!("{}", i),
+                            Value::Long(l) => println!("{}", l),
                             _ => println!("{:?}", arg),
                         }
                     }
