@@ -467,7 +467,7 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 + value2;
+                let value = value1.wrapping_add(value2);
 
                 frame.operand_stack.push(Value::Int(value));
             }
@@ -483,7 +483,7 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
-                let value = value1 + value2;
+                let value = value1.wrapping_add(value2);
 
                 frame.operand_stack.push(Value::Long(value));
             }
@@ -499,7 +499,7 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 - value2;
+                let value = value1.wrapping_sub(value2);
 
                 frame.operand_stack.push(Value::Int(value));
             }
@@ -515,7 +515,7 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
-                let value = value1 - value2;
+                let value = value1.wrapping_sub(value2);
 
                 frame.operand_stack.push(Value::Long(value));
             }
@@ -531,7 +531,7 @@ impl InstructionExecutor {
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 * value2;
+                let value = value1.wrapping_mul(value2);
 
                 frame.operand_stack.push(Value::Int(value));
             }
@@ -564,7 +564,7 @@ impl InstructionExecutor {
         //TODO: Handle division by zero
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
-                let value = value1 / value2;
+                let value = value1.wrapping_div(value2);
 
                 frame.operand_stack.push(Value::Int(value));
             }
@@ -581,7 +581,7 @@ impl InstructionExecutor {
         //TODO: Handle division by zero
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
-                let value = value1 / value2;
+                let value = value1.wrapping_div(value2);
 
                 frame.operand_stack.push(Value::Long(value));
             }
@@ -600,7 +600,7 @@ impl InstructionExecutor {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 debug_log!("value1: {}, value2: {}", value1, value2);
 
-                let value = value1 % value2;
+                let value = value1.wrapping_rem(value2);
 
                 debug_log!("value: {}", value);
 
@@ -621,7 +621,7 @@ impl InstructionExecutor {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
                 debug_log!("value1: {}, value2: {}", value1, value2);
 
-                let value = value1 % value2;
+                let value = value1.wrapping_rem(value2);
 
                 debug_log!("value: {}", value);
 
@@ -640,7 +640,7 @@ impl InstructionExecutor {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             debug_log!("value: {}", value);
 
-            let negated_value = -value;
+            let negated_value = value.wrapping_neg();
 
             debug_log!("negated_value: {}", negated_value);
 
@@ -658,7 +658,7 @@ impl InstructionExecutor {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             debug_log!("value: {}", value);
 
-            let negated_value = -value;
+            let negated_value = value.wrapping_neg();
 
             debug_log!("negated_value: {}", negated_value);
 
