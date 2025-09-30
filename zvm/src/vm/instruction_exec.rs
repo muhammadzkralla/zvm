@@ -34,11 +34,13 @@ impl InstructionExecutor {
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
             Opcode::Ldc2_w => self.execute_ldc2_w(frame, class_file, pc),
-            //TODO: For now, both Iload and Lload instructions can be handled by
-            // the same function as I don't do type validation yet, but in the future,
+            //TODO: For now, Iload<n>, Lload<n>, Fload<n>, and Dload<n>
+            // instructions can be handled by the same function
+            // as I don't do type validation yet, but in the future,
             // this should be separated
             Opcode::Iload => self.execute_iload(frame, pc),
             Opcode::Lload => self.execute_iload(frame, pc),
+            Opcode::Fload => self.execute_iload(frame, pc),
             Opcode::Iload0 => self.execute_iload_0(frame),
             Opcode::Iload1 => self.execute_iload_1(frame),
             Opcode::Iload2 => self.execute_iload_2(frame),
@@ -47,6 +49,10 @@ impl InstructionExecutor {
             Opcode::Lload1 => self.execute_iload_1(frame),
             Opcode::Lload2 => self.execute_iload_2(frame),
             Opcode::Lload3 => self.execute_iload_3(frame),
+            Opcode::Fload0 => self.execute_iload_0(frame),
+            Opcode::Fload1 => self.execute_iload_1(frame),
+            Opcode::Fload2 => self.execute_iload_2(frame),
+            Opcode::Fload3 => self.execute_iload_3(frame),
             Opcode::Aload => self.execute_aload(frame, pc),
             Opcode::Aload_0 => self.execute_aload_0(frame),
             Opcode::Aload_1 => self.execute_aload_1(frame),
