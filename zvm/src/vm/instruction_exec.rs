@@ -53,12 +53,13 @@ impl InstructionExecutor {
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
             Opcode::Aaload => self.execute_aaload(frame),
-            //TODO: For now, both Istore_<n> and Lstore_<n>
+            //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
             // as I don't do type validation yet, but in the future,
             // this should be separated
             Opcode::Istore => self.execute_istore(frame, pc),
             Opcode::Lstore => self.execute_istore(frame, pc),
+            Opcode::Fstore => self.execute_istore(frame, pc),
             Opcode::Istore_0 => self.execute_istore_0(frame),
             Opcode::Istore_1 => self.execute_istore_1(frame),
             Opcode::Istore_2 => self.execute_istore_2(frame),
@@ -67,6 +68,10 @@ impl InstructionExecutor {
             Opcode::Lstore_1 => self.execute_istore_1(frame),
             Opcode::Lstore_2 => self.execute_istore_2(frame),
             Opcode::Lstore_3 => self.execute_istore_3(frame),
+            Opcode::Fstore_0 => self.execute_istore_0(frame),
+            Opcode::Fstore_1 => self.execute_istore_1(frame),
+            Opcode::Fstore_2 => self.execute_istore_2(frame),
+            Opcode::Fstore_3 => self.execute_istore_3(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
             Opcode::Isub => self.execute_isub(frame),
