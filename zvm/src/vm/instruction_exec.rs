@@ -206,9 +206,34 @@ impl InstructionExecutor {
     ) -> Result<bool, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as u16;
-        if let Some(string_val) = class_file.get_string(index) {
-            frame.operand_stack.push(Value::Object(string_val.clone()));
-            debug_log!("  ldc \"{}\"", string_val);
+
+        if let Some(cp_entry) = class_file.constant_pool.get(index as usize) {
+            match cp_entry {
+                CpInfo::String { .. } => {
+                    if let Some(string_val) = class_file.get_string(index) {
+                        frame.operand_stack.push(Value::Object(string_val.clone()));
+                        debug_log!("  ldc \"{}\"", string_val);
+                    }
+                }
+                CpInfo::Integer { .. } => {
+                    if let Some(int_val) = class_file.get_integer(index) {
+                        frame.operand_stack.push(Value::Int(int_val));
+                        debug_log!("  ldc {}", int_val);
+                    }
+                }
+                CpInfo::Float { .. } => {
+                    if let Some(float_val) = class_file.get_float(index) {
+                        frame.operand_stack.push(Value::Float(float_val));
+                        debug_log!("  ldc {}f", float_val);
+                    }
+                }
+                _ => {
+                    return Err(format!(
+                        "Invalid constant pool entry type for ldc at index {}",
+                        index
+                    ));
+                }
+            }
         }
 
         Ok(true)
