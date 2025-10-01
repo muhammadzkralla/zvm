@@ -80,16 +80,22 @@ impl InstructionExecutor {
             Opcode::Fstore_3 => self.execute_istore_3(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
+            Opcode::Fadd => self.execute_fadd(frame),
             Opcode::Isub => self.execute_isub(frame),
             Opcode::Lsub => self.execute_lsub(frame),
+            Opcode::Fsub => self.execute_fsub(frame),
             Opcode::Imul => self.execute_imul(frame),
             Opcode::Lmul => self.execute_lmul(frame),
+            Opcode::Fmul => self.execute_fmul(frame),
             Opcode::Idiv => self.execute_idiv(frame),
             Opcode::Ldiv => self.execute_ldiv(frame),
+            Opcode::Fdiv => self.execute_fdiv(frame),
             Opcode::Irem => self.execute_irem(frame),
             Opcode::Lrem => self.execute_lrem(frame),
+            Opcode::Frem => self.execute_frem(frame),
             Opcode::Ineg => self.execute_ineg(frame),
             Opcode::Lneg => self.execute_lneg(frame),
+            Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -528,6 +534,22 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two float values from the operand stack, adds them, and then
+    /// push the result back onto the operand stack
+    fn execute_fadd(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 + value2;
+
+                frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop two integer values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
     fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -554,6 +576,22 @@ impl InstructionExecutor {
                 let value = value1.wrapping_sub(value2);
 
                 frame.operand_stack.push(Value::Long(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two float values from the operand stack, subtracts them, and then
+    /// push the result back onto the operand stack
+    fn execute_fsub(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 - value2;
+
+                frame.operand_stack.push(Value::Float(value));
             }
         }
 
@@ -592,6 +630,22 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two float values from the operand stack, multiplies them, and then
+    /// push the result back onto the operand stack
+    fn execute_fmul(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 * value2;
+
+                frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop two integer values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
     fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -620,6 +674,23 @@ impl InstructionExecutor {
                 let value = value1.wrapping_div(value2);
 
                 frame.operand_stack.push(Value::Long(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two float values from the operand stack, divides them, and then
+    /// push the result back onto the operand stack
+    fn execute_fdiv(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 / value2;
+
+                frame.operand_stack.push(Value::Float(value));
             }
         }
 
@@ -668,6 +739,27 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two float values from the operand stack, calculates their remainder,
+    /// and then push the result back onto the operand stack
+    fn execute_frem(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                debug_log!("value1: {}, value2: {}", value1, value2);
+
+                let value = value1 % value2;
+
+                debug_log!("value: {}", value);
+
+                frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop an integer value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
     fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -699,6 +791,24 @@ impl InstructionExecutor {
             debug_log!("negated_value: {}", negated_value);
 
             frame.operand_stack.push(Value::Long(negated_value));
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a float value from the operand stack, negates it, and then
+    /// push the result back onto the operand stack
+    fn execute_fneg(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value)) = frame.operand_stack.pop() {
+            debug_log!("value: {}", value);
+
+            let negated_value = -value;
+
+            debug_log!("negated_value: {}", negated_value);
+
+            frame.operand_stack.push(Value::Float(negated_value));
         }
 
         Ok(true)
@@ -1118,6 +1228,7 @@ impl InstructionExecutor {
                             Value::Object(s) => println!("{}", s),
                             Value::Int(i) => println!("{}", i),
                             Value::Long(l) => println!("{}", l),
+                            Value::Float(f) => println!("{}", f),
                             _ => println!("{:?}", arg),
                         }
                     }
