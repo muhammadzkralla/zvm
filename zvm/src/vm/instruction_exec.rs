@@ -34,11 +34,13 @@ impl InstructionExecutor {
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
             Opcode::Ldc2_w => self.execute_ldc2_w(frame, class_file, pc),
-            //TODO: For now, both Iload and Lload instructions can be handled by
-            // the same function as I don't do type validation yet, but in the future,
+            //TODO: For now, Iload<n>, Lload<n>, Fload<n>, and Dload<n>
+            // instructions can be handled by the same function
+            // as I don't do type validation yet, but in the future,
             // this should be separated
             Opcode::Iload => self.execute_iload(frame, pc),
             Opcode::Lload => self.execute_iload(frame, pc),
+            Opcode::Fload => self.execute_iload(frame, pc),
             Opcode::Iload0 => self.execute_iload_0(frame),
             Opcode::Iload1 => self.execute_iload_1(frame),
             Opcode::Iload2 => self.execute_iload_2(frame),
@@ -47,18 +49,23 @@ impl InstructionExecutor {
             Opcode::Lload1 => self.execute_iload_1(frame),
             Opcode::Lload2 => self.execute_iload_2(frame),
             Opcode::Lload3 => self.execute_iload_3(frame),
+            Opcode::Fload0 => self.execute_iload_0(frame),
+            Opcode::Fload1 => self.execute_iload_1(frame),
+            Opcode::Fload2 => self.execute_iload_2(frame),
+            Opcode::Fload3 => self.execute_iload_3(frame),
             Opcode::Aload => self.execute_aload(frame, pc),
             Opcode::Aload_0 => self.execute_aload_0(frame),
             Opcode::Aload_1 => self.execute_aload_1(frame),
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
             Opcode::Aaload => self.execute_aaload(frame),
-            //TODO: For now, both Istore_<n> and Lstore_<n>
+            //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
             // as I don't do type validation yet, but in the future,
             // this should be separated
             Opcode::Istore => self.execute_istore(frame, pc),
             Opcode::Lstore => self.execute_istore(frame, pc),
+            Opcode::Fstore => self.execute_istore(frame, pc),
             Opcode::Istore_0 => self.execute_istore_0(frame),
             Opcode::Istore_1 => self.execute_istore_1(frame),
             Opcode::Istore_2 => self.execute_istore_2(frame),
@@ -67,18 +74,28 @@ impl InstructionExecutor {
             Opcode::Lstore_1 => self.execute_istore_1(frame),
             Opcode::Lstore_2 => self.execute_istore_2(frame),
             Opcode::Lstore_3 => self.execute_istore_3(frame),
+            Opcode::Fstore_0 => self.execute_istore_0(frame),
+            Opcode::Fstore_1 => self.execute_istore_1(frame),
+            Opcode::Fstore_2 => self.execute_istore_2(frame),
+            Opcode::Fstore_3 => self.execute_istore_3(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
+            Opcode::Fadd => self.execute_fadd(frame),
             Opcode::Isub => self.execute_isub(frame),
             Opcode::Lsub => self.execute_lsub(frame),
+            Opcode::Fsub => self.execute_fsub(frame),
             Opcode::Imul => self.execute_imul(frame),
             Opcode::Lmul => self.execute_lmul(frame),
+            Opcode::Fmul => self.execute_fmul(frame),
             Opcode::Idiv => self.execute_idiv(frame),
             Opcode::Ldiv => self.execute_ldiv(frame),
+            Opcode::Fdiv => self.execute_fdiv(frame),
             Opcode::Irem => self.execute_irem(frame),
             Opcode::Lrem => self.execute_lrem(frame),
+            Opcode::Frem => self.execute_frem(frame),
             Opcode::Ineg => self.execute_ineg(frame),
             Opcode::Lneg => self.execute_lneg(frame),
+            Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -195,9 +212,34 @@ impl InstructionExecutor {
     ) -> Result<bool, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as u16;
-        if let Some(string_val) = class_file.get_string(index) {
-            frame.operand_stack.push(Value::Object(string_val.clone()));
-            debug_log!("  ldc \"{}\"", string_val);
+
+        if let Some(cp_entry) = class_file.constant_pool.get(index as usize) {
+            match cp_entry {
+                CpInfo::String { .. } => {
+                    if let Some(string_val) = class_file.get_string(index) {
+                        frame.operand_stack.push(Value::Object(string_val.clone()));
+                        debug_log!("  ldc \"{}\"", string_val);
+                    }
+                }
+                CpInfo::Integer { .. } => {
+                    if let Some(int_val) = class_file.get_integer(index) {
+                        frame.operand_stack.push(Value::Int(int_val));
+                        debug_log!("  ldc {}", int_val);
+                    }
+                }
+                CpInfo::Float { .. } => {
+                    if let Some(float_val) = class_file.get_float(index) {
+                        frame.operand_stack.push(Value::Float(float_val));
+                        debug_log!("  ldc {}f", float_val);
+                    }
+                }
+                _ => {
+                    return Err(format!(
+                        "Invalid constant pool entry type for ldc at index {}",
+                        index
+                    ));
+                }
+            }
         }
 
         Ok(true)
@@ -492,6 +534,22 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two float values from the operand stack, adds them, and then
+    /// push the result back onto the operand stack
+    fn execute_fadd(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 + value2;
+
+                frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop two integer values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
     fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -518,6 +576,22 @@ impl InstructionExecutor {
                 let value = value1.wrapping_sub(value2);
 
                 frame.operand_stack.push(Value::Long(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two float values from the operand stack, subtracts them, and then
+    /// push the result back onto the operand stack
+    fn execute_fsub(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 - value2;
+
+                frame.operand_stack.push(Value::Float(value));
             }
         }
 
@@ -556,6 +630,22 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two float values from the operand stack, multiplies them, and then
+    /// push the result back onto the operand stack
+    fn execute_fmul(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 * value2;
+
+                frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop two integer values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
     fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -584,6 +674,23 @@ impl InstructionExecutor {
                 let value = value1.wrapping_div(value2);
 
                 frame.operand_stack.push(Value::Long(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two float values from the operand stack, divides them, and then
+    /// push the result back onto the operand stack
+    fn execute_fdiv(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let value = value1 / value2;
+
+                frame.operand_stack.push(Value::Float(value));
             }
         }
 
@@ -632,6 +739,27 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two float values from the operand stack, calculates their remainder,
+    /// and then push the result back onto the operand stack
+    fn execute_frem(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                debug_log!("value1: {}, value2: {}", value1, value2);
+
+                let value = value1 % value2;
+
+                debug_log!("value: {}", value);
+
+                frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop an integer value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
     fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -663,6 +791,24 @@ impl InstructionExecutor {
             debug_log!("negated_value: {}", negated_value);
 
             frame.operand_stack.push(Value::Long(negated_value));
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a float value from the operand stack, negates it, and then
+    /// push the result back onto the operand stack
+    fn execute_fneg(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Float(value)) = frame.operand_stack.pop() {
+            debug_log!("value: {}", value);
+
+            let negated_value = -value;
+
+            debug_log!("negated_value: {}", negated_value);
+
+            frame.operand_stack.push(Value::Float(negated_value));
         }
 
         Ok(true)
@@ -1082,6 +1228,7 @@ impl InstructionExecutor {
                             Value::Object(s) => println!("{}", s),
                             Value::Int(i) => println!("{}", i),
                             Value::Long(l) => println!("{}", l),
+                            Value::Float(f) => println!("{}", f),
                             _ => println!("{:?}", arg),
                         }
                     }
