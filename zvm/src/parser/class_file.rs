@@ -147,4 +147,21 @@ impl ClassFile {
             None
         }
     }
+
+    pub fn get_integer(&self, index: u16) -> Option<i32> {
+        if let Some(CpInfo::Integer { bytes }) = self.constant_pool.get(index as usize) {
+            Some(*bytes as i32)
+        } else {
+            None
+        }
+    }
+
+    /// Retrieves a float constant from the constant pool.
+    pub fn get_float(&self, index: u16) -> Option<f32> {
+        if let Some(CpInfo::Float { bytes }) = self.constant_pool.get(index as usize) {
+            Some(f32::from_bits(*bytes))
+        } else {
+            None
+        }
+    }
 }
