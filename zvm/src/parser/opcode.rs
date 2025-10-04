@@ -37,6 +37,7 @@ pub enum Opcode {
     Istore = 0x36,        // 54
     Lstore = 0x37,        // 55
     Fstore = 0x38,        // 56
+    Dstore = 0x39,        // 57
     Istore_0 = 0x3B,      // 59
     Istore_1 = 0x3C,      // 60
     Istore_2 = 0x3D,      // 61
@@ -49,6 +50,10 @@ pub enum Opcode {
     Fstore_1 = 0x44,      // 68
     Fstore_2 = 0x45,      // 69
     Fstore_3 = 0x46,      // 70
+    Dstore_0 = 0x47,      // 71
+    Dstore_1 = 0x48,      // 72
+    Dstore_2 = 0x49,      // 73
+    Dstore_3 = 0x4A,      // 74
     Iadd = 0x60,          // 96
     Ladd = 0x61,          // 97
     Fadd = 0x62,          // 98
@@ -125,6 +130,7 @@ impl From<u8> for Opcode {
             0x36 => Opcode::Istore,
             0x37 => Opcode::Lstore,
             0x38 => Opcode::Fstore,
+            0x39 => Opcode::Dstore,
             0x3B => Opcode::Istore_0,
             0x3C => Opcode::Istore_1,
             0x3D => Opcode::Istore_2,
@@ -137,6 +143,10 @@ impl From<u8> for Opcode {
             0x44 => Opcode::Fstore_1,
             0x45 => Opcode::Fstore_2,
             0x46 => Opcode::Fstore_3,
+            0x47 => Opcode::Dstore_0,
+            0x48 => Opcode::Dstore_1,
+            0x49 => Opcode::Dstore_2,
+            0x4A => Opcode::Dstore_3,
             0x60 => Opcode::Iadd,
             0x61 => Opcode::Ladd,
             0x62 => Opcode::Fadd,

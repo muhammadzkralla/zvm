@@ -9,6 +9,9 @@ public class Main {
     private static float fnum1 = 3.14f;
     private static float fnum2 = 2.5f;
 
+    private static double dnum1 = 123.456789;
+    private static double dnum2 = 987.654321;
+
     public static void main(String[] args) {
         int addition = num1 + num2;
         int subtraction = num2 - num1;
