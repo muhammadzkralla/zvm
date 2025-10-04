@@ -260,17 +260,38 @@ impl InstructionExecutor {
         // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
         let index = ((index_high << 8) | index_low) as usize;
 
-        if let Some(CpInfo::Long {
-            high_bytes,
-            low_bytes,
-        }) = class_file.constant_pool.get(index)
-        {
-            // AS SPECIFIED BY THE SPECS:
-            // ((long) high_bytes << 32) + low_bytes
-            let long = ((*high_bytes as i64) << 32) + (*low_bytes as i64);
-            let value = Value::Long(long);
-            frame.operand_stack.push(value.clone());
-            debug_log!("  ldc2_w {:?}", value);
+        if let Some(cp_entry) = class_file.constant_pool.get(index as usize) {
+            match cp_entry {
+                CpInfo::Long {
+                    high_bytes,
+                    low_bytes,
+                } => {
+                    // AS SPECIFIED BY THE SPECS:
+                    // ((long) high_bytes << 32) + low_bytes
+                    let long_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
+                    let value = Value::Long(long_bits as i64);
+                    frame.operand_stack.push(value.clone());
+                    debug_log!("  ldc2_w {:?}", value);
+                }
+                CpInfo::Double {
+                    high_bytes,
+                    low_bytes,
+                } => {
+                    // AS SPECIFIED BY THE SPECS:
+                    // ((long) high_bytes << 32) + low_bytes
+                    // Then interpret the bits as a double
+                    let double_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
+                    let value = Value::Double(f64::from_bits(double_bits));
+                    frame.operand_stack.push(value.clone());
+                    debug_log!("  ldc2_w {:?}", value);
+                }
+                _ => {
+                    return Err(format!(
+                        "Invalid constant pool entry type for ldc2_w at index {}",
+                        index
+                    ));
+                }
+            }
         }
 
         Ok(true)
