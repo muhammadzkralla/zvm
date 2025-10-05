@@ -16,6 +16,7 @@ pub enum Opcode {
     Iload = 0x15,         // 21
     Lload = 0x16,         // 22
     Fload = 0x17,         // 23
+    Dload = 0x18,         // 24
     Iload0 = 0x1A,        // 26
     Iload1 = 0x1B,        // 27
     Iload2 = 0x1C,        // 28
@@ -28,6 +29,10 @@ pub enum Opcode {
     Fload1 = 0x23,        // 35
     Fload2 = 0x24,        // 36
     Fload3 = 0x25,        // 37
+    Dload0 = 0x26,        // 38
+    Dload1 = 0x27,        // 39
+    Dload2 = 0x28,        // 40
+    Dload3 = 0x29,        // 41
     Aload = 0x19,         // 25
     Aload_0 = 0x2A,       // 42
     Aload_1 = 0x2B,       // 43
@@ -109,6 +114,7 @@ impl From<u8> for Opcode {
             0x15 => Opcode::Iload,
             0x16 => Opcode::Lload,
             0x17 => Opcode::Fload,
+            0x18 => Opcode::Dload,
             0x1A => Opcode::Iload0,
             0x1B => Opcode::Iload1,
             0x1C => Opcode::Iload2,
@@ -121,6 +127,10 @@ impl From<u8> for Opcode {
             0x23 => Opcode::Fload1,
             0x24 => Opcode::Fload2,
             0x25 => Opcode::Fload3,
+            0x26 => Opcode::Dload0,
+            0x27 => Opcode::Dload1,
+            0x28 => Opcode::Dload2,
+            0x29 => Opcode::Dload3,
             0x19 => Opcode::Aload,
             0x2A => Opcode::Aload_0,
             0x2B => Opcode::Aload_1,
