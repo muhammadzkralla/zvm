@@ -41,6 +41,7 @@ impl InstructionExecutor {
             Opcode::Iload => self.execute_iload(frame, pc),
             Opcode::Lload => self.execute_iload(frame, pc),
             Opcode::Fload => self.execute_iload(frame, pc),
+            Opcode::Dload => self.execute_iload(frame, pc),
             Opcode::Iload0 => self.execute_iload_0(frame),
             Opcode::Iload1 => self.execute_iload_1(frame),
             Opcode::Iload2 => self.execute_iload_2(frame),
@@ -53,6 +54,10 @@ impl InstructionExecutor {
             Opcode::Fload1 => self.execute_iload_1(frame),
             Opcode::Fload2 => self.execute_iload_2(frame),
             Opcode::Fload3 => self.execute_iload_3(frame),
+            Opcode::Dload0 => self.execute_iload_0(frame),
+            Opcode::Dload1 => self.execute_iload_1(frame),
+            Opcode::Dload2 => self.execute_iload_2(frame),
+            Opcode::Dload3 => self.execute_iload_3(frame),
             Opcode::Aload => self.execute_aload(frame, pc),
             Opcode::Aload_0 => self.execute_aload_0(frame),
             Opcode::Aload_1 => self.execute_aload_1(frame),
@@ -66,6 +71,7 @@ impl InstructionExecutor {
             Opcode::Istore => self.execute_istore(frame, pc),
             Opcode::Lstore => self.execute_istore(frame, pc),
             Opcode::Fstore => self.execute_istore(frame, pc),
+            Opcode::Dstore => self.execute_istore(frame, pc),
             Opcode::Istore_0 => self.execute_istore_0(frame),
             Opcode::Istore_1 => self.execute_istore_1(frame),
             Opcode::Istore_2 => self.execute_istore_2(frame),
@@ -78,24 +84,34 @@ impl InstructionExecutor {
             Opcode::Fstore_1 => self.execute_istore_1(frame),
             Opcode::Fstore_2 => self.execute_istore_2(frame),
             Opcode::Fstore_3 => self.execute_istore_3(frame),
+            Opcode::Dstore_0 => self.execute_istore_0(frame),
+            Opcode::Dstore_1 => self.execute_istore_1(frame),
+            Opcode::Dstore_2 => self.execute_istore_2(frame),
+            Opcode::Dstore_3 => self.execute_istore_3(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
             Opcode::Fadd => self.execute_fadd(frame),
+            Opcode::Dadd => self.execute_dadd(frame),
             Opcode::Isub => self.execute_isub(frame),
             Opcode::Lsub => self.execute_lsub(frame),
             Opcode::Fsub => self.execute_fsub(frame),
+            Opcode::Dsub => self.execute_dsub(frame),
             Opcode::Imul => self.execute_imul(frame),
             Opcode::Lmul => self.execute_lmul(frame),
             Opcode::Fmul => self.execute_fmul(frame),
+            Opcode::Dmul => self.execute_dmul(frame),
             Opcode::Idiv => self.execute_idiv(frame),
             Opcode::Ldiv => self.execute_ldiv(frame),
             Opcode::Fdiv => self.execute_fdiv(frame),
+            Opcode::Ddiv => self.execute_ddiv(frame),
             Opcode::Irem => self.execute_irem(frame),
             Opcode::Lrem => self.execute_lrem(frame),
             Opcode::Frem => self.execute_frem(frame),
+            Opcode::Drem => self.execute_drem(frame),
             Opcode::Ineg => self.execute_ineg(frame),
             Opcode::Lneg => self.execute_lneg(frame),
             Opcode::Fneg => self.execute_fneg(frame),
+            Opcode::Dneg => self.execute_dneg(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -260,17 +276,38 @@ impl InstructionExecutor {
         // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
         let index = ((index_high << 8) | index_low) as usize;
 
-        if let Some(CpInfo::Long {
-            high_bytes,
-            low_bytes,
-        }) = class_file.constant_pool.get(index)
-        {
-            // AS SPECIFIED BY THE SPECS:
-            // ((long) high_bytes << 32) + low_bytes
-            let long = ((*high_bytes as i64) << 32) + (*low_bytes as i64);
-            let value = Value::Long(long);
-            frame.operand_stack.push(value.clone());
-            debug_log!("  ldc2_w {:?}", value);
+        if let Some(cp_entry) = class_file.constant_pool.get(index as usize) {
+            match cp_entry {
+                CpInfo::Long {
+                    high_bytes,
+                    low_bytes,
+                } => {
+                    // AS SPECIFIED BY THE SPECS:
+                    // ((long) high_bytes << 32) + low_bytes
+                    let long_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
+                    let value = Value::Long(long_bits as i64);
+                    frame.operand_stack.push(value.clone());
+                    debug_log!("  ldc2_w {:?}", value);
+                }
+                CpInfo::Double {
+                    high_bytes,
+                    low_bytes,
+                } => {
+                    // AS SPECIFIED BY THE SPECS:
+                    // ((long) high_bytes << 32) + low_bytes
+                    // Then interpret the bits as a double
+                    let double_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
+                    let value = Value::Double(f64::from_bits(double_bits));
+                    frame.operand_stack.push(value.clone());
+                    debug_log!("  ldc2_w {:?}", value);
+                }
+                _ => {
+                    return Err(format!(
+                        "Invalid constant pool entry type for ldc2_w at index {}",
+                        index
+                    ));
+                }
+            }
         }
 
         Ok(true)
@@ -550,6 +587,22 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two double values from the operand stack, adds them, and then
+    /// push the result back onto the operand stack
+    fn execute_dadd(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let value = value1 + value2;
+
+                frame.operand_stack.push(Value::Double(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop two integer values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
     fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -592,6 +645,22 @@ impl InstructionExecutor {
                 let value = value1 - value2;
 
                 frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two double values from the operand stack, subtracts them, and then
+    /// push the result back onto the operand stack
+    fn execute_dsub(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let value = value1 - value2;
+
+                frame.operand_stack.push(Value::Double(value));
             }
         }
 
@@ -646,6 +715,22 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two double values from the operand stack, multiplies them, and then
+    /// push the result back onto the operand stack
+    fn execute_dmul(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let value = value1 * value2;
+
+                frame.operand_stack.push(Value::Double(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop two integer values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
     fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -691,6 +776,23 @@ impl InstructionExecutor {
                 let value = value1 / value2;
 
                 frame.operand_stack.push(Value::Float(value));
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Pop two double values from the operand stack, divides them, and then
+    /// push the result back onto the operand stack
+    fn execute_ddiv(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let value = value1 / value2;
+
+                frame.operand_stack.push(Value::Double(value));
             }
         }
 
@@ -760,6 +862,27 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop two double values from the operand stack, calculates their remainder,
+    /// and then push the result back onto the operand stack
+    fn execute_drem(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        //TODO: Handle division by zero
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                debug_log!("value1: {}, value2: {}", value1, value2);
+
+                let value = value1 % value2;
+
+                debug_log!("value: {}", value);
+
+                frame.operand_stack.push(Value::Double(value));
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Pop an integer value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
     fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -809,6 +932,24 @@ impl InstructionExecutor {
             debug_log!("negated_value: {}", negated_value);
 
             frame.operand_stack.push(Value::Float(negated_value));
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a double value from the operand stack, negates it, and then
+    /// push the result back onto the operand stack
+    fn execute_dneg(&self, frame: &mut Frame) -> Result<bool, String> {
+        //TODO: Handle insufficient number of values in the operand stack
+        //TODO: Handle overflows
+        if let Some(Value::Double(value)) = frame.operand_stack.pop() {
+            debug_log!("value: {}", value);
+
+            let negated_value = -value;
+
+            debug_log!("negated_value: {}", negated_value);
+
+            frame.operand_stack.push(Value::Double(negated_value));
         }
 
         Ok(true)
@@ -1229,6 +1370,7 @@ impl InstructionExecutor {
                             Value::Int(i) => println!("{}", i),
                             Value::Long(l) => println!("{}", l),
                             Value::Float(f) => println!("{}", f),
+                            Value::Double(d) => println!("{}", d),
                             _ => println!("{:?}", arg),
                         }
                     }
