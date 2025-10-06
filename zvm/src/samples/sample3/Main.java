@@ -55,5 +55,19 @@ public class Main {
         System.out.println(fremainder);
         System.out.println(fnegation);
 
+        double daddition = dnum1 + dnum2;
+        double dsubtraction = dnum2 - dnum1;
+        double dmultiplication = dnum1 * dnum2;
+        double ddivision = dnum2 / dnum1;
+        double dremainder = dnum2 % dnum1;
+        double dnegation = -dnum1;
+
+        System.out.println(daddition);
+        System.out.println(dsubtraction);
+        System.out.println(dmultiplication);
+        System.out.println(ddivision);
+        System.out.println(dremainder);
+        System.out.println(dnegation);
+
     }
 }
