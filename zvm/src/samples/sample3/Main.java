@@ -69,5 +69,13 @@ public class Main {
         System.out.println(dremainder);
         System.out.println(dnegation);
 
+        System.out.println("testing iinc instuction:");
+
+        int num1 = 124124;
+        int num2 = 127540;
+        num1 += 100;
+        num2 += -100;
+        System.out.println(num1);
+        System.out.println(num2);
     }
 }

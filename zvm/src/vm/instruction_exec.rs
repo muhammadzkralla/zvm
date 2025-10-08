@@ -112,6 +112,7 @@ impl InstructionExecutor {
             Opcode::Lneg => self.execute_lneg(frame),
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
+            Opcode::Iinc => self.execute_iinc(frame, pc),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -955,6 +956,23 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Increment an integer value located in the current frame's local variables at the
+    /// index of the next byte's value from the bytecode with the value of the next signed
+    /// byte's value from the bytecode
+    fn execute_iinc(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+        *pc += 1;
+        let index = frame.bytecode[*pc] as usize;
+        *pc += 1;
+        // Cast to i8 first to get the signed value, then extend to i32
+        let constant = frame.bytecode[*pc] as i8 as i32;
+
+        if let Some(Value::Int(value)) = frame.local_variables.get(index) {
+            let new_value = value.wrapping_add(constant);
+            frame.local_variables.set(index, Value::Int(new_value));
+        }
+
+        Ok(true)
+    }
     /// Pop some value from the operand stack and check if it equals zero
     fn execute_ifeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
