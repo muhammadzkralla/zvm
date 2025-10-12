@@ -113,6 +113,7 @@ impl InstructionExecutor {
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
+            Opcode::D2f => self.execute_d2f(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -973,6 +974,19 @@ impl InstructionExecutor {
 
         Ok(true)
     }
+
+    /// Pop a double value from the current frame's operand stack , cast it to a float, and
+    /// finally push it back to the operand stack
+    fn execute_d2f(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Double(double)) = frame.operand_stack.pop() {
+            let result = double as f32;
+            debug_log!("  d2f {} -> {}", value, result);
+            frame.operand_stack.push(Value::Float(result));
+        }
+
+        Ok(true)
+    }
+
     /// Pop some value from the operand stack and check if it equals zero
     fn execute_ifeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
