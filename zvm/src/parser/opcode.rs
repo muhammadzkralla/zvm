@@ -84,6 +84,9 @@ pub enum Opcode {
     Fneg = 0x76,          // 118
     Dneg = 0x77,          // 119
     Iinc = 0x84,          // 132
+    D2i = 0x8E,           // 142
+    D2l = 0x8F,           // 143
+    D2f = 0x90,           // 144
     Ifeq = 0x99,          // 153
     Ifne = 0x9A,          // 154
     Iflt = 0x9B,          // 155
@@ -189,6 +192,9 @@ impl From<u8> for Opcode {
             0x76 => Opcode::Fneg,
             0x77 => Opcode::Dneg,
             0x84 => Opcode::Iinc,
+            0x8E => Opcode::D2i,
+            0x8F => Opcode::D2l,
+            0x90 => Opcode::D2f,
             0x99 => Opcode::Ifeq,
             0x9A => Opcode::Ifne,
             0x9B => Opcode::Iflt,
