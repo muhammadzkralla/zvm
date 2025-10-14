@@ -113,6 +113,9 @@ impl InstructionExecutor {
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
+            Opcode::F2i => self.execute_f2i(frame),
+            Opcode::F2l => self.execute_f2l(frame),
+            Opcode::F2d => self.execute_f2d(frame),
             Opcode::D2i => self.execute_d2i(frame),
             Opcode::D2l => self.execute_d2l(frame),
             Opcode::D2f => self.execute_d2f(frame),
@@ -972,6 +975,70 @@ impl InstructionExecutor {
         if let Some(Value::Int(value)) = frame.local_variables.get(index) {
             let new_value = value.wrapping_add(constant);
             frame.local_variables.set(index, Value::Int(new_value));
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a float value from the current frame's operand stack , cast it into an integer, and
+    /// finally push it back to the operand stack
+    fn execute_f2i(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Float(value)) = frame.operand_stack.pop() {
+            // AS SPECIFIED BY THE SPECS:
+            // NaN converts to 0
+            // Values >= i32::MAX converts to i32::MAX
+            // Values <= i32::MIN converts to i32::MIN
+            // Otherwise truncate towards zero
+            let result = if value.is_nan() {
+                0
+            } else if value >= i32::MAX as f32 {
+                i32::MAX
+            } else if value <= i32::MIN as f32 {
+                i32::MIN
+            } else {
+                value as i32
+            };
+
+            frame.operand_stack.push(Value::Int(result));
+            debug_log!("  f2i {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a float value from the current frame's operand stack , cast it into a long, and
+    /// finally push it back to the operand stack
+    fn execute_f2l(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Float(value)) = frame.operand_stack.pop() {
+            // AS SPECIFIED BY THE SPECS:
+            // NaN converts to 0
+            // Values >= i64::MAX converts to i64::MAX
+            // Values <= i64::MIN converts to i64::MIN
+            // Otherwise truncate towards zero
+            let result = if value.is_nan() {
+                0
+            } else if value >= i64::MAX as f32 {
+                i64::MAX
+            } else if value <= i64::MIN as f32 {
+                i64::MIN
+            } else {
+                value as i64
+            };
+
+            frame.operand_stack.push(Value::Long(result));
+            debug_log!("  f2l {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a float value from the current frame's operand stack , cast it into a double, and
+    /// finally push it back to the operand stack
+    fn execute_f2d(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Float(value)) = frame.operand_stack.pop() {
+            let result = value as f64;
+            frame.operand_stack.push(Value::Double(result));
+            debug_log!("  f2d {} -> {}", value, result);
         }
 
         Ok(true)
