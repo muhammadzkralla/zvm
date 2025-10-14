@@ -980,6 +980,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop a float value from the current frame's operand stack , cast it into an integer, and
+    /// finally push it back to the operand stack
     fn execute_f2i(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
@@ -1004,6 +1006,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop a float value from the current frame's operand stack , cast it into a long, and
+    /// finally push it back to the operand stack
     fn execute_f2l(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
@@ -1028,6 +1032,8 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop a float value from the current frame's operand stack , cast it into a double, and
+    /// finally push it back to the operand stack
     fn execute_f2d(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             let result = value as f64;
