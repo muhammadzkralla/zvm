@@ -54,5 +54,58 @@ class Main {
         System.out.println(l2);
         System.out.println(l3);
         System.out.println(l4);
+
+        // ------------------
+
+        // f2i examples
+        float fNaN = Float.NaN;
+        float f37 = 3.7f;
+        float fNeg37 = -3.7f;
+        float fLarge = 1e20f;
+        float fNegLarge = -1e20f;
+
+        i1 = (int) fNaN; // 0 (uses f2i)
+        i2 = (int) f37; // 3 (uses f2i)
+        i3 = (int) fNeg37; // -3 (uses f2i)
+        i4 = (int) fLarge; // i32::MAX (uses f2i)
+        i5 = (int) fNegLarge; // i32::MIN (uses f2i)
+
+        System.out.println(i1);
+        System.out.println(i2);
+        System.out.println(i3);
+        System.out.println(i4);
+        System.out.println(i5);
+
+        // f2l examples
+        float fNaN2 = Float.NaN;
+        float f37_2 = 3.7f;
+        float fVeryLarge = 1e20f;
+        float fPosInf = Float.POSITIVE_INFINITY;
+
+        l1 = (long) fNaN2; // 0L (uses f2l)
+        l2 = (long) f37_2; // 3L (uses f2l)
+        l3 = (long) fVeryLarge; // Large number (uses f2l)
+        l4 = (long) fPosInf; // i64::MAX (uses f2l)
+
+        System.out.println(l1);
+        System.out.println(l2);
+        System.out.println(l3);
+        System.out.println(l4);
+
+        // f2d examples
+        f1 = 3.14f;
+        f2 = Float.NaN;
+        f3 = Float.POSITIVE_INFINITY;
+        f4 = -0.0f;
+
+        d1 = (double) f1; // 3.14... (uses f2d)
+        d2 = (double) f2; // NaN (uses f2d)
+        d3 = (double) f3; // Infinity (uses f2d)
+        d4 = (double) f4; // -0.0 (uses f2d)
+
+        System.out.println(d1);
+        System.out.println(d2);
+        System.out.println(d3);
+        System.out.println(d4);
     }
 }
