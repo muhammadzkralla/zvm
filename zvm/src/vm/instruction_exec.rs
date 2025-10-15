@@ -113,6 +113,7 @@ impl InstructionExecutor {
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
+            //TODO: Handle type-validation and operand stack under/overflows
             Opcode::L2i => self.execute_l2i(frame),
             Opcode::L2f => self.execute_l2f(frame),
             Opcode::L2d => self.execute_l2d(frame),
@@ -983,7 +984,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a long value from the current frame's operand stack , cast it into an integer, and
+    /// Pop a long value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
     fn execute_l2i(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
@@ -995,7 +996,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a long value from the current frame's operand stack , cast it into a float, and
+    /// Pop a long value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
     fn execute_l2f(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
@@ -1007,19 +1008,19 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a long value from the current frame's operand stack , cast it into a double, and
+    /// Pop a long value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
     fn execute_l2d(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             let result = value as f64;
             frame.operand_stack.push(Value::Double(result));
-            debug_log!("  l2d{} -> {}", value, result);
+            debug_log!("  l2d {} -> {}", value, result);
         }
 
         Ok(true)
     }
 
-    /// Pop a float value from the current frame's operand stack , cast it into an integer, and
+    /// Pop a float value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
     fn execute_f2i(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
@@ -1045,7 +1046,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a float value from the current frame's operand stack , cast it into a long, and
+    /// Pop a float value from the current frame's operand stack, cast it into a long, and
     /// finally push it back to the operand stack
     fn execute_f2l(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
@@ -1071,7 +1072,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a float value from the current frame's operand stack , cast it into a double, and
+    /// Pop a float value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
     fn execute_f2d(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
@@ -1083,7 +1084,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a double value from the current frame's operand stack , cast it into an integer, and
+    /// Pop a double value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
     fn execute_d2i(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
@@ -1109,7 +1110,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a double value from the current frame's operand stack , cast it into a double, and
+    /// Pop a double value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
     fn execute_d2l(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
@@ -1135,7 +1136,7 @@ impl InstructionExecutor {
         Ok(true)
     }
 
-    /// Pop a double value from the current frame's operand stack , cast it into a float, and
+    /// Pop a double value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
     fn execute_d2f(&self, frame: &mut Frame) -> Result<bool, String> {
         if let Some(Value::Double(double)) = frame.operand_stack.pop() {
