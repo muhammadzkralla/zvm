@@ -107,5 +107,50 @@ class Main {
         System.out.println(d2);
         System.out.println(d3);
         System.out.println(d4);
+
+        // ------------------
+
+        // l2i examples
+        l1 = 123L;
+        l2 = 2147483648L; // Larger than i32::MAX
+        l3 = -1L;
+        l4 = 0x123456789ABCDEFL; // Only low 32 bits kept
+
+        i1 = (int) l1; // 123
+        i2 = (int) l2; // -2147483648
+        i3 = (int) l3; // -1
+        i4 = (int) l4; // 0x9ABCDEF
+
+        System.out.println(i1);
+        System.out.println(i2);
+        System.out.println(i3);
+        System.out.println(i4);
+
+        // l2f examples
+        long lf1 = 123L;
+        long lf2 = 16777217L; // Loses precision in float
+        long lf3 = 9223372036854775807L; // Very large
+
+        f1 = (float) lf1; // 123.0f
+        f2 = (float) lf2; // 16777216.0f
+        f3 = (float) lf3; // ~9.223372E18f
+
+        System.out.println(f1);
+        System.out.println(f2);
+        System.out.println(f3);
+
+        // l2d examples
+        long ld1 = 123L;
+        long ld2 = 9007199254740993L; // Loses precision in double
+        long ld3 = 9223372036854775807L; // Very large
+
+        d1 = (double) ld1; // 123.0
+        d2 = (double) ld2; // ~9.007199254740992E15
+        d3 = (double) ld3; // ~9.223372036854776E18
+
+        System.out.println(d1);
+        System.out.println(d2);
+        System.out.println(d3);
+
     }
 }
