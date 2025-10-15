@@ -113,6 +113,9 @@ impl InstructionExecutor {
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
+            Opcode::L2i => self.execute_l2i(frame),
+            Opcode::L2f => self.execute_l2f(frame),
+            Opcode::L2d => self.execute_l2d(frame),
             Opcode::F2i => self.execute_f2i(frame),
             Opcode::F2l => self.execute_f2l(frame),
             Opcode::F2d => self.execute_f2d(frame),
@@ -975,6 +978,42 @@ impl InstructionExecutor {
         if let Some(Value::Int(value)) = frame.local_variables.get(index) {
             let new_value = value.wrapping_add(constant);
             frame.local_variables.set(index, Value::Int(new_value));
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a long value from the current frame's operand stack , cast it into an integer, and
+    /// finally push it back to the operand stack
+    fn execute_l2i(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
+            let result = value as i32;
+            frame.operand_stack.push(Value::Int(result));
+            debug_log!("  l2i {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a long value from the current frame's operand stack , cast it into a float, and
+    /// finally push it back to the operand stack
+    fn execute_l2f(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
+            let result = value as f32;
+            frame.operand_stack.push(Value::Float(result));
+            debug_log!("  l2f {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop a long value from the current frame's operand stack , cast it into a double, and
+    /// finally push it back to the operand stack
+    fn execute_l2d(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
+            let result = value as f64;
+            frame.operand_stack.push(Value::Double(result));
+            debug_log!("  l2d{} -> {}", value, result);
         }
 
         Ok(true)
