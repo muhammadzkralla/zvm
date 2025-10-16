@@ -152,5 +152,88 @@ class Main {
         System.out.println(d2);
         System.out.println(d3);
 
+        // ------------------
+
+        // i2b examples
+        int ib1 = 127;
+        int ib2 = 128;
+        int ib3 = 256;
+        int ib4 = -1;
+
+        byte b1 = (byte) ib1; // 127
+        byte b2 = (byte) ib2; // -128
+        byte b3 = (byte) ib3; // 0
+        byte b4 = (byte) ib4; // -1
+
+        System.out.println(b1);
+        System.out.println(b2);
+        System.out.println(b3);
+        System.out.println(b4);
+
+        // i2c examples
+        int ic1 = 65;
+        int ic2 = -1;
+        int ic3 = 65536;
+        int ic4 = 32768;
+
+        char c1 = (char) ic1; // 65 'A'
+        char c2 = (char) ic2; // 65535
+        char c3 = (char) ic3; // 0
+        char c4 = (char) ic4; // 32768
+
+        System.out.println((int) c1);
+        System.out.println((int) c2);
+        System.out.println((int) c3);
+        System.out.println((int) c4);
+
+        // i2s examples
+        int is1 = 32767;
+        int is2 = 32768;
+        int is3 = 65536;
+        int is4 = -1;
+
+        short s1 = (short) is1; // 32767
+        short s2 = (short) is2; // -32768
+        short s3 = (short) is3; // 0
+        short s4 = (short) is4; // -1
+
+        System.out.println(s1);
+        System.out.println(s2);
+        System.out.println(s3);
+        System.out.println(s4);
+
+        // i2l examples
+        int il1 = 123;
+        int il2 = -456;
+        int il3 = 2147483647;
+
+        l1 = (long) il1; // 123L
+        l2 = (long) il2; // -456L
+        l3 = (long) il3; // 2147483647L
+
+        System.out.println(l1);
+        System.out.println(l2);
+        System.out.println(l3);
+
+        // i2f examples
+        int if1 = 123;
+        int if2 = 16777217; // Loses precision
+
+        f1 = (float) if1; // 123.0f
+        f2 = (float) if2; // 16777216.0f
+
+        System.out.println(f1);
+        System.out.println(f2);
+
+        // i2d examples
+        int id1 = 123;
+        int id2 = 2147483647;
+
+        d1 = (double) id1; // 123.0
+        d2 = (double) id2; // 2.147483647E9
+
+        System.out.println(d1);
+        System.out.println(d2);
+
     }
 }
