@@ -207,7 +207,7 @@ impl InstructionExecutor {
     /// Push the next byte's value from the bytecode to the operand stack
     fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         *pc += 1;
-        let value = frame.bytecode[*pc] as i32;
+        let value = frame.bytecode[*pc] as i8 as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  bipush {}", value);
 
@@ -223,7 +223,7 @@ impl InstructionExecutor {
         let low = frame.bytecode[*pc] as u16;
 
         // AS SPECIFIED BY THE SPECS: (byte1 << 8) | byte2
-        let value = ((high << 8) | low) as i32;
+        let value = (((high << 8) | low) as i16) as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  sipush {}", value);
 
