@@ -84,6 +84,9 @@ pub enum Opcode {
     Fneg = 0x76,          // 118
     Dneg = 0x77,          // 119
     Iinc = 0x84,          // 132
+    I2l = 0x85,           // 133
+    I2f = 0x86,           // 134
+    I2d = 0x87,           // 135
     L2i = 0x88,           // 136
     L2f = 0x89,           // 137
     L2d = 0x8A,           // 138
@@ -93,6 +96,9 @@ pub enum Opcode {
     D2i = 0x8E,           // 142
     D2l = 0x8F,           // 143
     D2f = 0x90,           // 144
+    I2b = 0x91,           // 145
+    I2c = 0x92,           // 146
+    I2s = 0x93,           // 147
     Ifeq = 0x99,          // 153
     Ifne = 0x9A,          // 154
     Iflt = 0x9B,          // 155
@@ -198,6 +204,9 @@ impl From<u8> for Opcode {
             0x76 => Opcode::Fneg,
             0x77 => Opcode::Dneg,
             0x84 => Opcode::Iinc,
+            0x85 => Opcode::I2l,
+            0x86 => Opcode::I2f,
+            0x87 => Opcode::I2d,
             0x88 => Opcode::L2i,
             0x89 => Opcode::L2f,
             0x8A => Opcode::L2d,
@@ -207,6 +216,9 @@ impl From<u8> for Opcode {
             0x8E => Opcode::D2i,
             0x8F => Opcode::D2l,
             0x90 => Opcode::D2f,
+            0x91 => Opcode::I2b,
+            0x92 => Opcode::I2c,
+            0x93 => Opcode::I2s,
             0x99 => Opcode::Ifeq,
             0x9A => Opcode::Ifne,
             0x9B => Opcode::Iflt,

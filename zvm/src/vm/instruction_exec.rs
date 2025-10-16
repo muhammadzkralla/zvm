@@ -113,6 +113,9 @@ impl InstructionExecutor {
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
+            Opcode::I2l => self.execute_i2l(frame),
+            Opcode::I2f => self.execute_i2f(frame),
+            Opcode::I2d => self.execute_i2d(frame),
             //TODO: Handle type-validation and operand stack under/overflows
             Opcode::L2i => self.execute_l2i(frame),
             Opcode::L2f => self.execute_l2f(frame),
@@ -123,6 +126,9 @@ impl InstructionExecutor {
             Opcode::D2i => self.execute_d2i(frame),
             Opcode::D2l => self.execute_d2l(frame),
             Opcode::D2f => self.execute_d2f(frame),
+            Opcode::I2b => self.execute_i2b(frame),
+            Opcode::I2c => self.execute_i2c(frame),
+            Opcode::I2s => self.execute_i2s(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -207,7 +213,7 @@ impl InstructionExecutor {
     /// Push the next byte's value from the bytecode to the operand stack
     fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
         *pc += 1;
-        let value = frame.bytecode[*pc] as i32;
+        let value = frame.bytecode[*pc] as i8 as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  bipush {}", value);
 
@@ -223,7 +229,7 @@ impl InstructionExecutor {
         let low = frame.bytecode[*pc] as u16;
 
         // AS SPECIFIED BY THE SPECS: (byte1 << 8) | byte2
-        let value = ((high << 8) | low) as i32;
+        let value = (((high << 8) | low) as i16) as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  sipush {}", value);
 
@@ -984,6 +990,42 @@ impl InstructionExecutor {
         Ok(true)
     }
 
+    /// Pop an integer value from the current frame's operand stack, cast it into a long, and
+    /// finally push it back to the operand stack
+    fn execute_i2l(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            let result = value as i64;
+            frame.operand_stack.push(Value::Long(result));
+            debug_log!("  i2l {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop an integer value from the current frame's operand stack, cast it into a float, and
+    /// finally push it back to the operand stack
+    fn execute_i2f(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            let result = value as f32;
+            frame.operand_stack.push(Value::Float(result));
+            debug_log!("  i2f {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop an integer value from the current frame's operand stack, cast it into a double, and
+    /// finally push it back to the operand stack
+    fn execute_i2d(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            let result = value as f64;
+            frame.operand_stack.push(Value::Double(result));
+            debug_log!("  i2d {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
     /// Pop a long value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
     fn execute_l2i(&self, frame: &mut Frame) -> Result<bool, String> {
@@ -1139,10 +1181,46 @@ impl InstructionExecutor {
     /// Pop a double value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
     fn execute_d2f(&self, frame: &mut Frame) -> Result<bool, String> {
-        if let Some(Value::Double(double)) = frame.operand_stack.pop() {
-            let result = double as f32;
+        if let Some(Value::Double(value)) = frame.operand_stack.pop() {
+            let result = value as f32;
             debug_log!("  d2f {} -> {}", value, result);
             frame.operand_stack.push(Value::Float(result));
+        }
+
+        Ok(true)
+    }
+
+    /// Pop an integer value from the current frame's operand stack, cast it into a byte, and
+    /// finally push it back to the operand stack
+    fn execute_i2b(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            let result = (value as i8) as i32;
+            frame.operand_stack.push(Value::Int(result));
+            debug_log!("  i2b {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop an integer value from the current frame's operand stack, cast it into a char, and
+    /// finally push it back to the operand stack
+    fn execute_i2c(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            let result = (value as u16) as i32;
+            frame.operand_stack.push(Value::Int(result));
+            debug_log!("  i2c {} -> {}", value, result);
+        }
+
+        Ok(true)
+    }
+
+    /// Pop an integer value from the current frame's operand stack, cast it into a short, and
+    /// finally push it back to the operand stack
+    fn execute_i2s(&self, frame: &mut Frame) -> Result<bool, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            let result = (value as i16) as i32;
+            frame.operand_stack.push(Value::Int(result));
+            debug_log!("  i2s {} -> {}", value, result);
         }
 
         Ok(true)
