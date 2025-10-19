@@ -66,6 +66,7 @@ impl CallStack {
         runtime_data_area: &mut RuntimeDataArea,
     ) {
         while let Some(mut frame) = self.pop_frame() {
+            //TODO: Handle frames returning stuff
             frame.execute_frame(class_file, runtime_data_area, self);
 
             debug_log!(

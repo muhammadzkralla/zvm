@@ -8,6 +8,23 @@ use crate::{
 
 pub struct InstructionExecutor;
 
+/// NOTE: This enum and instruction completion logic is mainly inspired by Andrea Bergia's
+/// Virtual Machine Project. You can find it at:
+/// https://github.com/andreabergia/rjvm
+/// NOTE: I only took this enum from them, all instructions execution functions and logic
+/// are implemented from scratch by me.
+///
+/// Possible execution result of an instruction
+pub enum InstructionCompleted {
+    /// Indicates that the instruction executed was one of the return family. The caller
+    /// should stop the method execution and return the value.
+    ReturnFromMethod(Option<Value>),
+
+    /// Indicates that the instruction was not a return, and thus the execution should
+    /// resume from the instruction at the program counter.
+    ContinueMethodExecution,
+}
+
 impl InstructionExecutor {
     pub fn new() -> Self {
         Self {}
@@ -21,7 +38,7 @@ impl InstructionExecutor {
         runtime_data_area: &mut RuntimeDataArea,
         call_stack: &mut CallStack,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         match opcode {
             Opcode::Iconstm1 => self.execute_iconst_m1(frame),
             Opcode::Iconst0 => self.execute_iconst_0(frame),
@@ -148,7 +165,7 @@ impl InstructionExecutor {
             Opcode::Invokespecial => {
                 // TODO: implement invokespecial
                 debug_log!("  Unhandled opcode: {:?}", opcode);
-                Ok(true)
+                Ok(InstructionCompleted::ContinueMethodExecution)
             }
             Opcode::Invokestatic => {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
@@ -156,73 +173,81 @@ impl InstructionExecutor {
 
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
-                Ok(true)
+                Ok(InstructionCompleted::ContinueMethodExecution)
             }
         }
     }
 
     /// Push integer constant -1 onto the operand stack
-    fn execute_iconst_m1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_m1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(-1));
         debug_log!("  iconst_m1");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 0 onto the operand stack
-    fn execute_iconst_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(0));
         debug_log!("  iconst_0");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 1 onto the operand stack
-    fn execute_iconst_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(1));
         debug_log!("  iconst_1");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 2 onto the operand stack
-    fn execute_iconst_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(2));
         debug_log!("  iconst_2");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 3 onto the operand stack
-    fn execute_iconst_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(3));
         debug_log!("  iconst_3");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 4 onto the operand stack
-    fn execute_iconst_4(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_4(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(4));
         debug_log!("  iconst_4");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 5 onto the operand stack
-    fn execute_iconst_5(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_5(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(5));
         debug_log!("  iconst_5");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push the next byte's value from the bytecode to the operand stack
-    fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_bipush(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let value = frame.bytecode[*pc] as i8 as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  bipush {}", value);
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push the next two bytes' value from the bytecode to the operand stack
     /// after applying the indexing equation specified by the specs
-    fn execute_sipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_sipush(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -233,7 +258,7 @@ impl InstructionExecutor {
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  sipush {}", value);
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a String value from the constant pool and push it to the operand stack
@@ -242,7 +267,7 @@ impl InstructionExecutor {
         frame: &mut Frame,
         class_file: &ClassFile,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as u16;
 
@@ -275,7 +300,7 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a long or a double value from the constant pool and push it to the operand stack
@@ -284,7 +309,7 @@ impl InstructionExecutor {
         frame: &mut Frame,
         class_file: &ClassFile,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -327,12 +352,16 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of the next byte's value from the bytecode
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iload(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         //TODO: I assume the variable will always be an integer type as specified by the specs
         // I think we should do a check here, but I'll choose to keep the logic simple
         // Same applies to the other iload_<n> instruction implementations
@@ -343,60 +372,64 @@ impl InstructionExecutor {
             debug_log!("  iload \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 0
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 0 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_0 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 1
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 1 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_1 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 2
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 2 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_2 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 3
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 3 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_3 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of the next byte's value in the bytecode
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_aload(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         //TODO: I assume the variable will always be a reference type as specified by the specs
         // I think we should do a check here, but I'll choose to keep the logic simple
         // Same applies to the other aload_<n> instruction implementations
@@ -410,12 +443,12 @@ impl InstructionExecutor {
             return Err("Local variable is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 0
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(0) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_0 = {:?}", value);
@@ -423,12 +456,12 @@ impl InstructionExecutor {
             return Err("Local variable 0 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 1
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(1) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_1 = {:?}", value);
@@ -436,12 +469,12 @@ impl InstructionExecutor {
             return Err("Local variable 1 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 2
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(2) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_2 = {:?}", value);
@@ -449,12 +482,12 @@ impl InstructionExecutor {
             return Err("Local variable 2 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 3
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(3) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_3 = {:?}", value);
@@ -462,11 +495,11 @@ impl InstructionExecutor {
             return Err("Local variable 3 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a reference value from an array and push it to the operand stack
-    fn execute_aaload(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle missing index and array ref and StackOverFlowException
         if let Some(Value::Int(index)) = frame.operand_stack.pop() {
             if let Some(arrayref) = frame.operand_stack.pop() {
@@ -487,12 +520,16 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the next byte's value from the bytecode in the frame's local variables
-    fn execute_istore(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_istore(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
 
@@ -501,12 +538,12 @@ impl InstructionExecutor {
             debug_log!("  istore[{}] = {:?}", index, value);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 0 in the frame's local variables
-    fn execute_istore_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 0 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
@@ -514,12 +551,12 @@ impl InstructionExecutor {
             debug_log!("  istore_0[{}] = {:?}", index, value);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 1 in the frame's local variables
-    fn execute_istore_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 1 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
@@ -527,12 +564,12 @@ impl InstructionExecutor {
             debug_log!("  istore_1[{}] = {:?}", index, value);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 2 in the frame's local variables
-    fn execute_istore_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 2 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
@@ -540,12 +577,12 @@ impl InstructionExecutor {
             debug_log!("  istore_2[{}] = {:?}", index, value);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 3 in the frame's local variables
-    fn execute_istore_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 3 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
@@ -553,12 +590,12 @@ impl InstructionExecutor {
             debug_log!("  istore_3[{}] = {:?}", index, value);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_iadd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iadd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
@@ -569,12 +606,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_ladd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ladd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
@@ -585,12 +622,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_fadd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fadd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
@@ -601,12 +638,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_dadd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dadd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
@@ -617,12 +654,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_isub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
@@ -633,12 +670,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_lsub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lsub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
@@ -649,12 +686,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_fsub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fsub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
@@ -665,12 +702,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_dsub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dsub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
@@ -681,12 +718,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_imul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_imul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
@@ -697,12 +734,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_lmul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lmul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
@@ -713,12 +750,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_fmul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fmul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
@@ -729,12 +766,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_dmul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dmul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
@@ -745,12 +782,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_idiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -762,12 +799,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_ldiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ldiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -779,12 +816,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_fdiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fdiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -796,12 +833,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_ddiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ddiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -813,12 +850,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_irem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_irem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -834,12 +871,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_lrem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lrem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -855,12 +892,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_frem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_frem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -876,12 +913,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_drem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_drem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -897,12 +934,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ineg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
@@ -915,12 +952,12 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Int(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_lneg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lneg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
@@ -933,12 +970,12 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Long(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_fneg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fneg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
@@ -951,12 +988,12 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Float(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_dneg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dneg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
@@ -969,13 +1006,17 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Double(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Increment an integer value located in the current frame's local variables at the
     /// index of the next byte's value from the bytecode with the value of the next signed
     /// byte's value from the bytecode
-    fn execute_iinc(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iinc(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
         *pc += 1;
@@ -987,84 +1028,84 @@ impl InstructionExecutor {
             frame.local_variables.set(index, Value::Int(new_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a long, and
     /// finally push it back to the operand stack
-    fn execute_i2l(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2l(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = value as i64;
             frame.operand_stack.push(Value::Long(result));
             debug_log!("  i2l {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
-    fn execute_i2f(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2f(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = value as f32;
             frame.operand_stack.push(Value::Float(result));
             debug_log!("  i2f {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_i2d(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2d(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = value as f64;
             frame.operand_stack.push(Value::Double(result));
             debug_log!("  i2d {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
-    fn execute_l2i(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_l2i(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             let result = value as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  l2i {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
-    fn execute_l2f(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_l2f(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             let result = value as f32;
             frame.operand_stack.push(Value::Float(result));
             debug_log!("  l2f {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_l2d(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_l2d(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             let result = value as f64;
             frame.operand_stack.push(Value::Double(result));
             debug_log!("  l2d {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
-    fn execute_f2i(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_f2i(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1085,12 +1126,12 @@ impl InstructionExecutor {
             debug_log!("  f2i {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the current frame's operand stack, cast it into a long, and
     /// finally push it back to the operand stack
-    fn execute_f2l(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_f2l(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1111,24 +1152,24 @@ impl InstructionExecutor {
             debug_log!("  f2l {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_f2d(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_f2d(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             let result = value as f64;
             frame.operand_stack.push(Value::Double(result));
             debug_log!("  f2d {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
-    fn execute_d2i(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_d2i(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1149,12 +1190,12 @@ impl InstructionExecutor {
             debug_log!("  d2i {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_d2l(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_d2l(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1175,59 +1216,63 @@ impl InstructionExecutor {
             debug_log!("  d2l {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
-    fn execute_d2f(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_d2f(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
             let result = value as f32;
             debug_log!("  d2f {} -> {}", value, result);
             frame.operand_stack.push(Value::Float(result));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a byte, and
     /// finally push it back to the operand stack
-    fn execute_i2b(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2b(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = (value as i8) as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  i2b {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a char, and
     /// finally push it back to the operand stack
-    fn execute_i2c(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2c(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = (value as u16) as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  i2c {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a short, and
     /// finally push it back to the operand stack
-    fn execute_i2s(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2s(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = (value as i16) as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  i2s {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it equals zero
-    fn execute_ifeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifeq(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value == 0 {
                 *pc += 1;
@@ -1247,11 +1292,15 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it doesn't equals zero
-    fn execute_ifne(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifne(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value != 0 {
                 *pc += 1;
@@ -1270,11 +1319,15 @@ impl InstructionExecutor {
                 *pc += 2;
             }
         }
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is less than zero
-    fn execute_iflt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iflt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value < 0 {
                 *pc += 1;
@@ -1294,11 +1347,15 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is greater than or equal zero
-    fn execute_ifge(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifge(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value >= 0 {
                 *pc += 1;
@@ -1318,11 +1375,15 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is greater than zero
-    fn execute_ifgt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifgt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value > 0 {
                 *pc += 1;
@@ -1342,11 +1403,15 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is less than or equal zero
-    fn execute_ifle(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifle(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value <= 0 {
                 *pc += 1;
@@ -1366,11 +1431,15 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if they are equal
-    fn execute_if_icmpeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpeq(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 == value2 {
@@ -1392,11 +1461,15 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if they are not equal
-    fn execute_if_icmpne(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpne(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 != value2 {
@@ -1418,12 +1491,16 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is less than the
     /// second
-    fn execute_if_icmplt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmplt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 < value2 {
@@ -1445,12 +1522,16 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is greater than or equal
     /// the second
-    fn execute_if_icmpge(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpge(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 >= value2 {
@@ -1472,11 +1553,15 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is greater than the second
-    fn execute_if_icmpgt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpgt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 > value2 {
@@ -1498,12 +1583,16 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is less than or equal
     /// the second
-    fn execute_if_icmple(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmple(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 <= value2 {
@@ -1525,14 +1614,14 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Breaks the current frame's execution loop
-    fn execute_return(&self) -> Result<bool, String> {
+    fn execute_return(&self) -> Result<InstructionCompleted, String> {
         debug_log!("  return");
         // Signal to break the execution loop
-        Ok(false)
+        Ok(InstructionCompleted::ReturnFromMethod(None))
     }
 
     /// Load a static field reference located at the index of the next two bytes' value in the bytecode
@@ -1544,7 +1633,7 @@ impl InstructionExecutor {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1572,7 +1661,7 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Put a static field reference located at the index of the next two bytes' value in the bytecode
@@ -1584,7 +1673,7 @@ impl InstructionExecutor {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1602,7 +1691,7 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a non-static method reference located at the index of the next two bytes' value in the bytecode
@@ -1614,7 +1703,7 @@ impl InstructionExecutor {
         frame: &mut Frame,
         class_file: &ClassFile,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1651,7 +1740,7 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a static method reference located at the index of the next two bytes' value in the bytecode
@@ -1665,7 +1754,7 @@ impl InstructionExecutor {
         runtime_data_area: &mut RuntimeDataArea,
         call_stack: &mut CallStack,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1700,7 +1789,7 @@ impl InstructionExecutor {
                 Some(method) => method,
                 None => {
                     debug_log!("No {} method found", method_name);
-                    return Ok(true);
+                    return Ok(InstructionCompleted::ContinueMethodExecution);
                 }
             };
 
@@ -1730,6 +1819,7 @@ impl InstructionExecutor {
                 .ok_or("Could not acquire top frame")?
                 .clone();
 
+            //TODO: Handle frames returning stuff
             top_frame.execute_frame(class_file, runtime_data_area, call_stack)?;
 
             if let Some(popped_frame) = call_stack.pop_frame() {
@@ -1742,7 +1832,7 @@ impl InstructionExecutor {
             //TODO: Handle external class methods
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Count the number of params passed to some function call
