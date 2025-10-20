@@ -89,6 +89,7 @@ impl InstructionExecutor {
             Opcode::Lstore => self.execute_istore(frame, pc),
             Opcode::Fstore => self.execute_istore(frame, pc),
             Opcode::Dstore => self.execute_istore(frame, pc),
+            Opcode::Astore => self.execute_istore(frame, pc),
             Opcode::Istore_0 => self.execute_istore_0(frame),
             Opcode::Istore_1 => self.execute_istore_1(frame),
             Opcode::Istore_2 => self.execute_istore_2(frame),
@@ -105,6 +106,10 @@ impl InstructionExecutor {
             Opcode::Dstore_1 => self.execute_istore_1(frame),
             Opcode::Dstore_2 => self.execute_istore_2(frame),
             Opcode::Dstore_3 => self.execute_istore_3(frame),
+            Opcode::Astore_0 => self.execute_istore_0(frame),
+            Opcode::Astore_1 => self.execute_istore_1(frame),
+            Opcode::Astore_2 => self.execute_istore_2(frame),
+            Opcode::Astore_3 => self.execute_istore_3(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
             Opcode::Fadd => self.execute_fadd(frame),
@@ -275,7 +280,9 @@ impl InstructionExecutor {
             match cp_entry {
                 CpInfo::String { .. } => {
                     if let Some(string_val) = class_file.get_string(index) {
-                        frame.operand_stack.push(Value::Object(string_val.clone()));
+                        frame
+                            .operand_stack
+                            .push(Value::Reference(string_val.clone()));
                         debug_log!("  ldc \"{}\"", string_val);
                     }
                 }
@@ -1726,7 +1733,7 @@ impl InstructionExecutor {
                 if let Some(arg) = frame.operand_stack.pop() {
                     if let Some(_print_stream) = frame.operand_stack.pop() {
                         match arg {
-                            Value::Object(s) => println!("{}", s),
+                            Value::Reference(s) => println!("{}", s),
                             Value::Int(i) => println!("{}", i),
                             Value::Long(l) => println!("{}", l),
                             Value::Float(f) => println!("{}", f),

@@ -93,7 +93,7 @@ impl Vm {
         let mut array_values = Vec::new();
 
         for arg in args.iter() {
-            let value = Value::Object(arg.clone());
+            let value = Value::Reference(arg.clone());
             array_values.push(value);
         }
 
