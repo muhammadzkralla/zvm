@@ -163,6 +163,7 @@ impl InstructionExecutor {
             Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+            Opcode::Areturn => self.execute_areturn(frame),
             Opcode::Return => self.execute_return(),
             Opcode::Getstatic => self.execute_getstatic(frame, class_file, runtime_data_area, pc),
             Opcode::Putstatic => self.execute_putstatic(frame, class_file, runtime_data_area, pc),
@@ -569,6 +570,8 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_1[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
@@ -1624,6 +1627,17 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    fn execute_areturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Reference(objectref)) = frame.operand_stack.pop() {
+            debug_log!("  Areturn: {}", objectref);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(
+                Value::Reference(objectref),
+            )))
+        } else {
+            Err("Areturn: operand stack was empty or top value was not a Reference".to_string())
+        }
+    }
+
     /// Breaks the current frame's execution loop
     fn execute_return(&self) -> Result<InstructionCompleted, String> {
         debug_log!("  return");
@@ -1827,13 +1841,36 @@ impl InstructionExecutor {
                 .clone();
 
             //TODO: Handle frames returning stuff
-            top_frame.execute_frame(class_file, runtime_data_area, call_stack)?;
+            match top_frame.execute_frame(class_file, runtime_data_area, call_stack) {
+                Ok(returned) => {
+                    call_stack.print_frames();
+                    if let Some(popped_frame) = call_stack.pop_frame() {
+                        debug_log!(
+                            "\n\nFINISHED EXECUTING STATIC FRAME: {}\n\n",
+                            popped_frame.method_name.unwrap_or_default()
+                        );
+                        call_stack.print_frames();
 
-            if let Some(popped_frame) = call_stack.pop_frame() {
-                debug_log!(
-                    "\n\nFINISHED EXECUTING FRAME: {}\n\n",
-                    popped_frame.method_name.unwrap_or_default()
-                );
+                        if let Some(value) = returned {
+                            debug_log!("SOME VALUE RETURNED!!!!");
+                            if let Some(invoker_frame) = call_stack.current_frame() {
+                                debug_log!(
+                                    "\n\nCONTROL RETURNED TO INVOKER: {}\n\n",
+                                    invoker_frame.method_name.clone().unwrap_or_default()
+                                );
+
+                                invoker_frame.operand_stack.push(value);
+                                let val = invoker_frame.operand_stack.peek().expect("test");
+                                debug_log!("val: {:?}", val);
+                            }
+                        } else {
+                            debug_log!("no value returned!!!!");
+                        }
+                    }
+                }
+                Err(msg) => {
+                    debug_log!("Error executing frame: {}", msg);
+                }
             }
 
             //TODO: Handle external class methods
