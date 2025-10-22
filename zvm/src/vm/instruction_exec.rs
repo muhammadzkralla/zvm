@@ -163,6 +163,7 @@ impl InstructionExecutor {
             Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+            Opcode::Dreturn => self.execute_dreturn(frame),
             Opcode::Areturn => self.execute_areturn(frame),
             Opcode::Return => self.execute_return(),
             Opcode::Getstatic => self.execute_getstatic(frame, class_file, runtime_data_area, pc),
@@ -1633,6 +1634,17 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_dreturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Double(value)) = frame.operand_stack.pop() {
+            debug_log!("  Dreturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Double(
+                value,
+            ))))
+        } else {
+            Err("Dreturn: operand stack was empty or top value was not a Double".to_string())
+        }
     }
 
     fn execute_areturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
