@@ -2,8 +2,12 @@ use crate::{
     debug_log,
     parser::{class_file::ClassFile, opcode::Opcode},
     vm::{
-        call_stack::CallStack, instruction_exec::InstructionExecutor, local::LocalVariables,
-        operand_stack::OperandStack, runtime::RuntimeDataArea,
+        call_stack::CallStack,
+        instruction_exec::{InstructionCompleted, InstructionExecutor},
+        local::LocalVariables,
+        operand_stack::OperandStack,
+        runtime::RuntimeDataArea,
+        value::Value,
     },
 };
 
@@ -33,7 +37,7 @@ impl Frame {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
         call_stack: &mut CallStack,
-    ) -> Result<(), String> {
+    ) -> Result<Option<Value>, String> {
         let name = self.method_name.clone().expect("Failed to get method name");
 
         debug_log!("\n\nEXECUTING FRAME: {}\n\n", name);
@@ -55,14 +59,14 @@ impl Frame {
                 call_stack,
                 &mut current_pc,
             ) {
-                Ok(should_continue_flag) => {
-                    if !should_continue_flag {
-                        // Since we outsourced control logic to another function, we can't
-                        // break from there, so this is a workaround for now
-                        //TODO: Clean later
-                        break;
+                Ok(instruction_completed) => match instruction_completed {
+                    InstructionCompleted::ReturnFromMethod(returned) => {
+                        return Ok(returned);
                     }
-                }
+                    InstructionCompleted::ContinueMethodExecution => {
+                        // do nothing, complete bytecode processing loop
+                    }
+                },
                 Err(e) => {
                     eprintln!("Error executing instruction: {}", e);
                     return Err(e);
@@ -72,6 +76,6 @@ impl Frame {
             current_pc += 1;
         }
 
-        Ok(())
+        Ok(None)
     }
 }

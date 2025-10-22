@@ -5,7 +5,6 @@ pub enum Value {
     Long(i64),         // Represent long values
     Float(f32),        // Represent float values
     Double(f64),       // Represent double values
-    Object(String),    // Simplified, just store string representation
     Reference(String), // For object references
     Array(Vec<Value>), // Support arrays
 }
