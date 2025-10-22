@@ -163,6 +163,7 @@ impl InstructionExecutor {
             Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+            Opcode::Dreturn => self.execute_dreturn(frame),
             Opcode::Areturn => self.execute_areturn(frame),
             Opcode::Return => self.execute_return(),
             Opcode::Getstatic => self.execute_getstatic(frame, class_file, runtime_data_area, pc),
@@ -1635,6 +1636,21 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop a double value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_dreturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Double(value)) = frame.operand_stack.pop() {
+            debug_log!("  Dreturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Double(
+                value,
+            ))))
+        } else {
+            Err("Dreturn: operand stack was empty or top value was not a Double".to_string())
+        }
+    }
+
+    /// Pop a reference value from the current stack's operand stack and return it to the
+    /// invoker frame
     fn execute_areturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Reference(objectref)) = frame.operand_stack.pop() {
             debug_log!("  Areturn: {}", objectref);
@@ -1646,7 +1662,7 @@ impl InstructionExecutor {
         }
     }
 
-    /// Breaks the current frame's execution loop
+    /// Breaks the current frame's execution loop ( return void )
     fn execute_return(&self) -> Result<InstructionCompleted, String> {
         debug_log!("  return");
         // Signal to break the execution loop
