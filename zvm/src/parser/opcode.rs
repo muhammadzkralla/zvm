@@ -43,6 +43,7 @@ pub enum Opcode {
     Lstore = 0x37,        // 55
     Fstore = 0x38,        // 56
     Dstore = 0x39,        // 57
+    Astore = 0x3A,        // 58
     Istore_0 = 0x3B,      // 59
     Istore_1 = 0x3C,      // 60
     Istore_2 = 0x3D,      // 61
@@ -59,6 +60,10 @@ pub enum Opcode {
     Dstore_1 = 0x48,      // 72
     Dstore_2 = 0x49,      // 73
     Dstore_3 = 0x4A,      // 74
+    Astore_0 = 0x4B,      // 75
+    Astore_1 = 0x4C,      // 76
+    Astore_2 = 0x4D,      // 77
+    Astore_3 = 0x4E,      // 78
     Iadd = 0x60,          // 96
     Ladd = 0x61,          // 97
     Fadd = 0x62,          // 98
@@ -111,6 +116,7 @@ pub enum Opcode {
     If_icmpge = 0xA2,     // 162
     If_icmpgt = 0xA3,     // 163
     If_icmple = 0xA4,     // 164
+    Areturn = 0xB0,       // 176
     Return = 0xB1,        // 177
     Getstatic = 0xB2,     // 178
     Putstatic = 0xB3,     // 179
@@ -163,6 +169,7 @@ impl From<u8> for Opcode {
             0x37 => Opcode::Lstore,
             0x38 => Opcode::Fstore,
             0x39 => Opcode::Dstore,
+            0x3A => Opcode::Astore,
             0x3B => Opcode::Istore_0,
             0x3C => Opcode::Istore_1,
             0x3D => Opcode::Istore_2,
@@ -179,6 +186,10 @@ impl From<u8> for Opcode {
             0x48 => Opcode::Dstore_1,
             0x49 => Opcode::Dstore_2,
             0x4A => Opcode::Dstore_3,
+            0x4B => Opcode::Astore_0,
+            0x4C => Opcode::Astore_1,
+            0x4D => Opcode::Astore_2,
+            0x4E => Opcode::Astore_3,
             0x60 => Opcode::Iadd,
             0x61 => Opcode::Ladd,
             0x62 => Opcode::Fadd,
@@ -231,6 +242,7 @@ impl From<u8> for Opcode {
             0xA2 => Opcode::If_icmpge,
             0xA3 => Opcode::If_icmpgt,
             0xA4 => Opcode::If_icmple,
+            0xB0 => Opcode::Areturn,
             0xB1 => Opcode::Return,
             0xB2 => Opcode::Getstatic,
             0xB3 => Opcode::Putstatic,
