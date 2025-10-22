@@ -544,6 +544,8 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
@@ -557,6 +559,8 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_0[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
@@ -585,6 +589,8 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_2[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
@@ -598,6 +604,8 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_3[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
@@ -1860,7 +1868,9 @@ impl InstructionExecutor {
                                 );
 
                                 invoker_frame.operand_stack.push(value);
-                                let val = invoker_frame.operand_stack.peek().expect("test");
+                                let val = invoker_frame.operand_stack.peek().expect(
+                                    "ailed to peek operand stack after pushing return value",
+                                );
                                 debug_log!("val: {:?}", val);
                             }
                         } else {

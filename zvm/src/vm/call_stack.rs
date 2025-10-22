@@ -95,7 +95,9 @@ impl CallStack {
                         }
                     }
                 }
-                Err(msg) => {}
+                Err(msg) => {
+                    debug_log!("Error executing frame: {}", msg);
+                }
             }
         }
     }
@@ -108,7 +110,10 @@ impl CallStack {
     /// Handle printing current stack frames
     pub fn print_frames(&self) {
         for (i, frame) in self.frames.iter().enumerate() {
-            let frame_name = frame.method_name.as_deref().expect("");
+            let frame_name = frame
+                .method_name
+                .as_deref()
+                .expect("Failed to get frame name!");
             debug_log!("Frame[{}]: {}", i, frame_name);
         }
     }
