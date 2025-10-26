@@ -163,6 +163,7 @@ impl InstructionExecutor {
             Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+            Opcode::Freturn => self.execute_freturn(frame),
             Opcode::Dreturn => self.execute_dreturn(frame),
             Opcode::Areturn => self.execute_areturn(frame),
             Opcode::Return => self.execute_return(),
@@ -1634,6 +1635,19 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a float value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_freturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Float(value)) = frame.operand_stack.pop() {
+            debug_log!("  Freturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Float(
+                value,
+            ))))
+        } else {
+            Err("Freturn: operand stack was empty or top value was not a Float".to_string())
+        }
     }
 
     /// Pop a double value from the current stack's operand stack and return it to the
