@@ -1,4 +1,5 @@
 pub mod call_stack;
+pub mod heap;
 pub mod instruction_exec;
 pub mod local;
 pub mod logging;
