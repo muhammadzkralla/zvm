@@ -116,6 +116,7 @@ pub enum Opcode {
     If_icmpge = 0xA2,     // 162
     If_icmpgt = 0xA3,     // 163
     If_icmple = 0xA4,     // 164
+    Freturn = 0xAE,       // 174
     Dreturn = 0xAF,       // 175
     Areturn = 0xB0,       // 176
     Return = 0xB1,        // 177
@@ -243,6 +244,7 @@ impl From<u8> for Opcode {
             0xA2 => Opcode::If_icmpge,
             0xA3 => Opcode::If_icmpgt,
             0xA4 => Opcode::If_icmple,
+            0xAE => Opcode::Freturn,
             0xAF => Opcode::Dreturn,
             0xB0 => Opcode::Areturn,
             0xB1 => Opcode::Return,
