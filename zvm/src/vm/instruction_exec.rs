@@ -163,6 +163,7 @@ impl InstructionExecutor {
             Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+            Opcode::Ireturn => self.execute_ireturn(frame),
             Opcode::Freturn => self.execute_freturn(frame),
             Opcode::Dreturn => self.execute_dreturn(frame),
             Opcode::Areturn => self.execute_areturn(frame),
@@ -1635,6 +1636,19 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop an integer value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_ireturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            debug_log!("  Ireturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Int(
+                value,
+            ))))
+        } else {
+            Err("Ireturn: operand stack was empty or top value was not an Integer".to_string())
+        }
     }
 
     /// Pop a float value from the current stack's operand stack and return it to the
