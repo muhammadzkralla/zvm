@@ -164,6 +164,7 @@ impl InstructionExecutor {
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
             Opcode::Ireturn => self.execute_ireturn(frame),
+            Opcode::Lreturn => self.execute_lreturn(frame),
             Opcode::Freturn => self.execute_freturn(frame),
             Opcode::Dreturn => self.execute_dreturn(frame),
             Opcode::Areturn => self.execute_areturn(frame),
@@ -1636,6 +1637,19 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a long value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_lreturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
+            debug_log!("  Lreturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Long(
+                value,
+            ))))
+        } else {
+            Err("Lreturn: operand stack was empty or top value was not a Long".to_string())
+        }
     }
 
     /// Pop an integer value from the current stack's operand stack and return it to the
