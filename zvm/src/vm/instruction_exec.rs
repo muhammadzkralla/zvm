@@ -1639,19 +1639,6 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
-    /// Pop a long value from the current stack's operand stack and return it to the
-    /// invoker frame
-    fn execute_lreturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
-        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
-            debug_log!("  Lreturn: {}", value);
-            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Long(
-                value,
-            ))))
-        } else {
-            Err("Lreturn: operand stack was empty or top value was not a Long".to_string())
-        }
-    }
-
     /// Pop an integer value from the current stack's operand stack and return it to the
     /// invoker frame
     fn execute_ireturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
@@ -1662,6 +1649,19 @@ impl InstructionExecutor {
             ))))
         } else {
             Err("Ireturn: operand stack was empty or top value was not an Integer".to_string())
+        }
+    }
+
+    /// Pop a long value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_lreturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
+            debug_log!("  Lreturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Long(
+                value,
+            ))))
+        } else {
+            Err("Lreturn: operand stack was empty or top value was not a Long".to_string())
         }
     }
 
