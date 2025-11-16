@@ -136,6 +136,10 @@ impl InstructionExecutor {
             Opcode::Lneg => self.execute_lneg(frame),
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
+            Opcode::Iand => self.execute_iand(frame),
+            Opcode::Land => self.execute_land(frame),
+            Opcode::Ior => self.execute_ior(frame),
+            Opcode::Lor => self.execute_lor(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
             Opcode::I2l => self.execute_i2l(frame),
             Opcode::I2f => self.execute_i2f(frame),
@@ -1042,6 +1046,66 @@ impl InstructionExecutor {
             debug_log!("negated_value: {}", negated_value);
 
             frame.operand_stack.push(Value::Double(negated_value));
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE AND on
+    /// both of them and then push the result back to the operand stack
+    fn execute_iand(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 & value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE AND on
+    /// both of them and then push the result back to the operand stack
+    fn execute_land(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 & value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE OR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_ior(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 | value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE OR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_lor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 | value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
