@@ -47,6 +47,8 @@ impl InstructionExecutor {
             Opcode::Iconst3 => self.execute_iconst_3(frame),
             Opcode::Iconst4 => self.execute_iconst_4(frame),
             Opcode::Iconst5 => self.execute_iconst_5(frame),
+            Opcode::Lconst0 => self.execute_lconst_0(frame),
+            Opcode::Lconst1 => self.execute_lconst_1(frame),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
@@ -234,6 +236,20 @@ impl InstructionExecutor {
     fn execute_iconst_5(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(5));
         debug_log!("  iconst_5");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push long constant 0 onto the operand stack
+    fn execute_lconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Long(0 as i64));
+        debug_log!("  lconst_0");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push long constant 1 onto the operand stack
+    fn execute_lconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Long(1 as i64));
+        debug_log!("  lconst_1");
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
