@@ -94,6 +94,8 @@ pub enum Opcode {
     Land = 0x7F,          // 127
     Ior = 0x80,           // 128
     Lor = 0x81,           // 129
+    Ixor = 0x82,          // 130
+    Lxor = 0x83,          // 131
     Iinc = 0x84,          // 132
     I2l = 0x85,           // 133
     I2f = 0x86,           // 134
@@ -230,6 +232,8 @@ impl From<u8> for Opcode {
             0x7F => Opcode::Land,
             0x80 => Opcode::Ior,
             0x81 => Opcode::Lor,
+            0x82 => Opcode::Ixor,
+            0x83 => Opcode::Lxor,
             0x84 => Opcode::Iinc,
             0x85 => Opcode::I2l,
             0x86 => Opcode::I2f,

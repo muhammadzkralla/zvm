@@ -140,6 +140,8 @@ impl InstructionExecutor {
             Opcode::Land => self.execute_land(frame),
             Opcode::Ior => self.execute_ior(frame),
             Opcode::Lor => self.execute_lor(frame),
+            Opcode::Ixor => self.execute_ixor(frame),
+            Opcode::Lxor => self.execute_lxor(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
             Opcode::I2l => self.execute_i2l(frame),
             Opcode::I2f => self.execute_i2f(frame),
@@ -1103,6 +1105,36 @@ impl InstructionExecutor {
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
                 let result = value1 | value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE XOR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_ixor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 ^ value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE XOR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_lxor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 ^ value2;
 
                 frame.operand_stack.push(Value::Long(result));
             }
