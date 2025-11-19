@@ -1057,6 +1057,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop two integer values from the operand stack and shift value1
+    /// left by s bit positions, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
     fn execute_ishl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
@@ -1070,6 +1073,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// left by s bit positions, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
     fn execute_lshl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
@@ -1083,6 +1089,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop two integer values from the operand stack and shift value1
+    /// right by s bit positions, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
     fn execute_ishr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
@@ -1096,6 +1105,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// right by s bit positions, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
     fn execute_lshr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
