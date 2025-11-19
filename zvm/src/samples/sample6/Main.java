@@ -100,5 +100,39 @@ class Main {
         int zero = 0;
         System.out.println(allOnes & zero); // 0
         System.out.println(allOnes | zero); // -1
+
+        // Test ishl (left shift)
+        i1 = 5;
+        int shifted_left = i1 << 2; // 5 << 2 = 20
+        System.out.println(shifted_left); // 20
+
+        // Test ishr (arithmetic right shift)
+        i2 = -16;
+        int shifted_right = i2 >> 2; // -16 >> 2 = -4 (sign extended)
+        System.out.println(shifted_right); // -4
+
+        int i3 = 16;
+        int shifted_right2 = i3 >> 2; // 16 >> 2 = 4
+        System.out.println(shifted_right2); // 4
+
+        // Test shift amount masking
+        int i4 = 10;
+        int masked = i4 << 33; // Same as 10 << 1 = 20
+        System.out.println(masked); // 20
+
+        // Test lshl (long left shift)
+        l1 = 5L;
+        long lshifted_left = l1 << 2; // 5L << 2 = 20L
+        System.out.println(lshifted_left); // 20
+
+        // Test lshr (long arithmetic right shift)
+        l2 = -16L;
+        long lshifted_right = l2 >> 2; // -16L >> 2 = -4L
+        System.out.println(lshifted_right); // -4
+
+        // Test large shift for longs
+        long l3 = 1L;
+        long lshifted_large = l3 << 40; // 1L << 40 = 1099511627776L
+        System.out.println(lshifted_large); // 1099511627776
     }
 }

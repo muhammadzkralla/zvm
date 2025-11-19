@@ -136,6 +136,10 @@ impl InstructionExecutor {
             Opcode::Lneg => self.execute_lneg(frame),
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
+            Opcode::Ishl => self.execute_ishl(frame),
+            Opcode::Lshl => self.execute_lshl(frame),
+            Opcode::Ishr => self.execute_ishr(frame),
+            Opcode::Lshr => self.execute_lshr(frame),
             Opcode::Iand => self.execute_iand(frame),
             Opcode::Land => self.execute_land(frame),
             Opcode::Ior => self.execute_ior(frame),
@@ -1048,6 +1052,58 @@ impl InstructionExecutor {
             debug_log!("negated_value: {}", negated_value);
 
             frame.operand_stack.push(Value::Double(negated_value));
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_ishl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                let result = value1 << mask;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_lshl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                let result = value1 << mask;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_ishr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                let result = value1 >> mask;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_lshr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                let result = value1 >> mask;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
