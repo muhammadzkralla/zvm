@@ -94,6 +94,8 @@ pub enum Opcode {
     Lshl = 0x79,          // 121
     Ishr = 0x7A,          // 122
     Lshr = 0x7B,          // 123
+    Iushr = 0x7C,         // 124
+    Lushr = 0x7D,         // 125
     Iand = 0x7E,          // 126
     Land = 0x7F,          // 127
     Ior = 0x80,           // 128
@@ -236,6 +238,8 @@ impl From<u8> for Opcode {
             0x79 => Opcode::Lshl,
             0x7A => Opcode::Ishr,
             0x7B => Opcode::Lshr,
+            0x7C => Opcode::Iushr,
+            0x7D => Opcode::Lushr,
             0x7E => Opcode::Iand,
             0x7F => Opcode::Land,
             0x80 => Opcode::Ior,
