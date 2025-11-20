@@ -47,6 +47,8 @@ impl InstructionExecutor {
             Opcode::Iconst3 => self.execute_iconst_3(frame),
             Opcode::Iconst4 => self.execute_iconst_4(frame),
             Opcode::Iconst5 => self.execute_iconst_5(frame),
+            Opcode::Lconst0 => self.execute_lconst_0(frame),
+            Opcode::Lconst1 => self.execute_lconst_1(frame),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
@@ -134,6 +136,18 @@ impl InstructionExecutor {
             Opcode::Lneg => self.execute_lneg(frame),
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
+            Opcode::Ishl => self.execute_ishl(frame),
+            Opcode::Lshl => self.execute_lshl(frame),
+            Opcode::Ishr => self.execute_ishr(frame),
+            Opcode::Lshr => self.execute_lshr(frame),
+            Opcode::Iushr => self.execute_iushr(frame),
+            Opcode::Lushr => self.execute_lushr(frame),
+            Opcode::Iand => self.execute_iand(frame),
+            Opcode::Land => self.execute_land(frame),
+            Opcode::Ior => self.execute_ior(frame),
+            Opcode::Lor => self.execute_lor(frame),
+            Opcode::Ixor => self.execute_ixor(frame),
+            Opcode::Lxor => self.execute_lxor(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
             Opcode::I2l => self.execute_i2l(frame),
             Opcode::I2f => self.execute_i2f(frame),
@@ -234,6 +248,20 @@ impl InstructionExecutor {
     fn execute_iconst_5(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(5));
         debug_log!("  iconst_5");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push long constant 0 onto the operand stack
+    fn execute_lconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Long(0 as i64));
+        debug_log!("  lconst_0");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push long constant 1 onto the operand stack
+    fn execute_lconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Long(1 as i64));
+        debug_log!("  lconst_1");
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
@@ -1026,6 +1054,194 @@ impl InstructionExecutor {
             debug_log!("negated_value: {}", negated_value);
 
             frame.operand_stack.push(Value::Double(negated_value));
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and shift value1
+    /// left by s bit positions, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_ishl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                let result = value1 << mask;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// left by s bit positions, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_lshl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                let result = value1 << mask;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and shift value1
+    /// right by s bit positions, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_ishr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                let result = value1 >> mask;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// right by s bit positions, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_lshr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                let result = value1 >> mask;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and shift value1 right
+    /// by s bit positions zero-extended, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_iushr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                // Extend with zeroes despite the sign bit value
+                let result = ((value1 as u32) >> mask) as i32;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// right by s bit positions zero-extended, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_lushr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                // Extend with zeroes despite the sign bit value
+                let result = ((value1 as u64) >> mask) as i64;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE AND on
+    /// both of them and then push the result back to the operand stack
+    fn execute_iand(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 & value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE AND on
+    /// both of them and then push the result back to the operand stack
+    fn execute_land(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 & value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE OR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_ior(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 | value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE OR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_lor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 | value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE XOR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_ixor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 ^ value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE XOR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_lxor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 ^ value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
