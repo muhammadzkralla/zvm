@@ -134,5 +134,27 @@ class Main {
         long l3 = 1L;
         long lshifted_large = l3 << 40; // 1L << 40 = 1099511627776L
         System.out.println(lshifted_large); // 1099511627776
+
+        int positive = 16;
+        int negative = -16;
+
+        // Arithmetic right shift (>>)
+        System.out.println(positive >> 2); // 4
+        System.out.println(negative >> 2); // -4 (sign preserved)
+
+        // Logical right shift (>>>)
+        System.out.println(positive >>> 2); // 4 (same as >>)
+        System.out.println(negative >>> 2); // 1073741820 (treated as unsigned)
+
+        long positiveL = 16L;
+        long negativeL = -16L;
+
+        // Arithmetic right shift (>>)
+        System.out.println(positiveL >> 2); // 4
+        System.out.println(negativeL >> 2); // -4 (sign preserved)
+
+        // Logical right shift (>>>)
+        System.out.println(positiveL >>> 2); // 4 (same as >>)
+        System.out.println(negativeL >>> 2); // 1073741820 (treated as unsigned)
     }
 }

@@ -1136,21 +1136,25 @@ impl InstructionExecutor {
                 frame.operand_stack.push(Value::Int(result));
             }
         }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop one integer and one long values from the operand stack and shift value1
     /// right by s bit positions zero-extended, where s is the low 6 bits of value2
     /// and then push the result back to the operand stack
     fn execute_lushr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
-        if let Some(Value::Int(valu2)) = frame.operand_stack.pop() {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
-                let mask = (valu2 & 0x3F) as u32;
+                let mask = (value2 & 0x3F) as u32;
                 // Extend with zeroes despite the sign bit value
                 let result = ((value1 as u64) >> mask) as i64;
 
                 frame.operand_stack.push(Value::Long(result));
             }
         }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and perform BITWISE AND on
