@@ -177,6 +177,7 @@ impl InstructionExecutor {
             Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+            Opcode::Goto => self.execute_goto(frame, pc),
             Opcode::Ireturn => self.execute_ireturn(frame),
             Opcode::Lreturn => self.execute_lreturn(frame),
             Opcode::Freturn => self.execute_freturn(frame),
@@ -194,7 +195,7 @@ impl InstructionExecutor {
             Opcode::Invokestatic => {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
             }
-
+            Opcode::Goto_w => self.execute_goto_w(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
                 Ok(InstructionCompleted::ContinueMethodExecution)
@@ -1855,6 +1856,32 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Unconditionally branch to a target address specified by a 16-bit signed offset
+    /// from the address of the goto opcode itself
+    fn execute_goto(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let branchbyte1 = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let branchbyte2 = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+        let offset = ((branchbyte1 << 8) | (branchbyte2)) as i16;
+
+        let goto_address = *pc - 2;
+        let target = (goto_address as isize + offset as isize) as usize;
+
+        // NOTE: The offset is relative to the address of the goto opcode itself,
+        // not the current PC
+        *pc = target.wrapping_sub(1);
+
+        debug_log!("  goto {} (target: {})", offset, target);
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
     /// Pop an integer value from the current stack's operand stack and return it to the
     /// invoker frame
     fn execute_ireturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
@@ -2160,6 +2187,38 @@ impl InstructionExecutor {
             //TODO: Handle external class methods
         }
 
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Unconditionally branch to a target address specified by a 32-bit signed offset
+    /// from the address of the goto_w opcode itself (wide index variant)
+    fn execute_goto_w(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let branchbyte1 = frame.bytecode[*pc] as u32;
+        *pc += 1;
+        let branchbyte2 = frame.bytecode[*pc] as u32;
+        *pc += 1;
+        let branchbyte3 = frame.bytecode[*pc] as u32;
+        *pc += 1;
+        let branchbyte4 = frame.bytecode[*pc] as u32;
+
+        // AS SPECIFIED BY THE SPECS:
+        //(branchbyte1 << 24) | (branchbyte2 << 16) | (branchbyte3 << 8) | branchbyte4
+        let offset =
+            ((branchbyte1 << 24) | (branchbyte2 << 16) | (branchbyte3 << 8) | branchbyte4) as i32;
+
+        let goto_address = *pc - 4;
+        let target = (goto_address as isize + offset as isize) as usize;
+
+        // NOTE: The offset is relative to the address of the goto_w opcode itself,
+        // not the current PC
+        *pc = target.wrapping_sub(1);
+
+        debug_log!("  goto_w {} (target: {})", offset, target);
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
