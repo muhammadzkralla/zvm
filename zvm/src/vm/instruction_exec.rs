@@ -1856,6 +1856,8 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Unconditionally branch to a target address specified by a 16-bit signed offset
+    /// from the address of the goto opcode itself
     fn execute_goto(
         &self,
         frame: &mut Frame,
@@ -2188,6 +2190,8 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Unconditionally branch to a target address specified by a 32-bit signed offset
+    /// from the address of the goto_w opcode itself (wide index variant)
     fn execute_goto_w(
         &self,
         frame: &mut Frame,
