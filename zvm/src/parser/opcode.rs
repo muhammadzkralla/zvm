@@ -130,6 +130,7 @@ pub enum Opcode {
     If_icmpge = 0xA2,     // 162
     If_icmpgt = 0xA3,     // 163
     If_icmple = 0xA4,     // 164
+    Goto = 0xA7,          // 167
     Ireturn = 0xAC,       // 172
     Lreturn = 0xAD,       // 173
     Freturn = 0xAE,       // 174
@@ -141,6 +142,7 @@ pub enum Opcode {
     Invokevirtual = 0xB6, // 182
     Invokespecial = 0xB7, // 183
     Invokestatic = 0xB8,  // 184
+    Goto_w = 0xC8,        // 200
 }
 
 impl From<u8> for Opcode {
@@ -274,6 +276,7 @@ impl From<u8> for Opcode {
             0xA2 => Opcode::If_icmpge,
             0xA3 => Opcode::If_icmpgt,
             0xA4 => Opcode::If_icmple,
+            0xA7 => Opcode::Goto,
             0xAC => Opcode::Ireturn,
             0xAD => Opcode::Lreturn,
             0xAE => Opcode::Freturn,
@@ -285,6 +288,7 @@ impl From<u8> for Opcode {
             0xB6 => Opcode::Invokevirtual,
             0xB7 => Opcode::Invokespecial,
             0xB8 => Opcode::Invokestatic,
+            0xC8 => Opcode::Goto_w,
             _ => panic!("Unknown opcode: 0x{:02X}", byte),
         }
     }
