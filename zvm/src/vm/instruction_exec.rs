@@ -49,6 +49,9 @@ impl InstructionExecutor {
             Opcode::Iconst5 => self.execute_iconst_5(frame),
             Opcode::Lconst0 => self.execute_lconst_0(frame),
             Opcode::Lconst1 => self.execute_lconst_1(frame),
+            Opcode::Fconst0 => self.execute_fconst_0(frame),
+            Opcode::Fconst1 => self.execute_fconst_1(frame),
+            Opcode::Fconst2 => self.execute_fconst_2(frame),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
@@ -263,6 +266,27 @@ impl InstructionExecutor {
     fn execute_lconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Long(1 as i64));
         debug_log!("  lconst_1");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push float constant 0 onto the operand stack
+    fn execute_fconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Float(0.0));
+        debug_log!("  fconst_0");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push float constant 1 onto the operand stack
+    fn execute_fconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Float(1.0));
+        debug_log!("  fconst_1");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push float constant 2 onto the operand stack
+    fn execute_fconst_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Float(2.0));
+        debug_log!("  fconst_2");
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
