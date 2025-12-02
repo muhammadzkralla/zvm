@@ -5,6 +5,12 @@ class Main {
         float f2 = 2.0f;
         float f3 = 3.14f;
 
+        double d0 = 0.0d;
+        double d1 = 1.0d;
+
+        System.out.println(d0);
+        System.out.println(d1);
+
         float sum = f0 + f1 + f2;
         System.out.println(sum);
 

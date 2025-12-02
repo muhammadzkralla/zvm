@@ -52,6 +52,8 @@ impl InstructionExecutor {
             Opcode::Fconst0 => self.execute_fconst_0(frame),
             Opcode::Fconst1 => self.execute_fconst_1(frame),
             Opcode::Fconst2 => self.execute_fconst_2(frame),
+            Opcode::Dconst0 => self.execute_dconst_0(frame),
+            Opcode::Dconst1 => self.execute_dconst_1(frame),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
@@ -287,6 +289,20 @@ impl InstructionExecutor {
     fn execute_fconst_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Float(2.0));
         debug_log!("  fconst_2");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push double constant 0 onto the operand stack
+    fn execute_dconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Double(0.0 as f64));
+        debug_log!("  dconst_0");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push double constant 1 onto the operand stack
+    fn execute_dconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Double(1.0 as f64));
+        debug_log!("  dconst_1");
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
