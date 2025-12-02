@@ -11,6 +11,11 @@ pub enum Opcode {
     Iconst5 = 0x08,       // 8
     Lconst0 = 0x09,       // 9
     Lconst1 = 0x0A,       // 10
+    Fconst0 = 0x0B,       // 11
+    Fconst1 = 0x0C,       // 12
+    Fconst2 = 0x0D,       // 13
+    Dconst0 = 0x0E,       // 14
+    Dconst1 = 0x0F,       // 15
     Bipush = 0x10,        // 16
     Sipush = 0x11,        // 17
     Ldc = 0x12,           // 18
@@ -157,6 +162,11 @@ impl From<u8> for Opcode {
             0x08 => Opcode::Iconst5,
             0x09 => Opcode::Lconst0,
             0x0A => Opcode::Lconst1,
+            0x0B => Opcode::Fconst0,
+            0x0C => Opcode::Fconst1,
+            0x0D => Opcode::Fconst2,
+            0x0E => Opcode::Dconst0,
+            0x0F => Opcode::Dconst1,
             0x10 => Opcode::Bipush,
             0x11 => Opcode::Sipush,
             0x12 => Opcode::Ldc,
