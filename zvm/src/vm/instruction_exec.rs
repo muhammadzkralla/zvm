@@ -1526,6 +1526,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Compare two floats on the operand stack
+    /// If either value is NaN, push -1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
     fn execute_fcmpl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
@@ -1547,6 +1550,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Compare two floats on the operand stack
+    /// If either value is NaN, push 1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
     fn execute_fcmpg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
@@ -1568,6 +1574,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Compare two doubles on the operand stack
+    /// If either value is NaN, push -1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
     fn execute_dcmpl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
@@ -1582,13 +1591,16 @@ impl InstructionExecutor {
                 };
 
                 frame.operand_stack.push(Value::Int(result));
-                debug_log!("  fcmpg {} cmp {} = {}", value1, value2, result);
+                debug_log!("  dcmpg {} cmp {} = {}", value1, value2, result);
             }
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Compare two doubles on the operand stack
+    /// If either value is NaN, push 1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
     fn execute_dcmpg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
@@ -1603,7 +1615,7 @@ impl InstructionExecutor {
                 };
 
                 frame.operand_stack.push(Value::Int(result));
-                debug_log!("  fcmpg {} cmp {} = {}", value1, value2, result);
+                debug_log!("  dcmpg {} cmp {} = {}", value1, value2, result);
             }
         }
 
