@@ -30,15 +30,38 @@ impl CallStack {
         // Create the frame and initialize it
         let mut frame = Frame::new(Some(method_name.clone()), max_locals, bytecode);
 
-        // Get the arguments
-        for (i, arg) in args.iter().enumerate() {
-            if i < frame.local_variables.vars.len() {
-                frame.local_variables.vars[i] = Some(arg.clone());
+        // Get the passed arguments and store them in the current frame's local variables
+        let mut current_arg_index = 0;
+
+        for mut i in 0..max_locals {
+            if i < frame.local_variables.vars.len() && current_arg_index < args.len() {
+                let current_arg = args[current_arg_index].clone();
+
+                // NOTE: Double and long values take two places in the local variables array
+                // of the current frame meanwhile any other type takes just one place
+                match current_arg {
+                    Value::Double(_) => {
+                        frame.local_variables.vars[i] = Some(current_arg.clone());
+                        frame.local_variables.vars[i + 1] = Some(current_arg);
+                        i += 1;
+                    }
+                    Value::Long(_) => {
+                        frame.local_variables.vars[i] = Some(current_arg.clone());
+                        frame.local_variables.vars[i + 1] = Some(current_arg);
+                        i += 1;
+                    }
+                    _ => {
+                        frame.local_variables.vars[i] = Some(current_arg);
+                    }
+                }
+
+                current_arg_index += 1;
             }
         }
 
         self.frames.push(frame);
     }
+
     /// Handle popping frames
     pub fn pop_frame(&mut self) -> Option<Frame> {
         self.frames.pop()
