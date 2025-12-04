@@ -168,6 +168,10 @@ impl InstructionExecutor {
             Opcode::D2l => self.execute_d2l(frame),
             Opcode::D2f => self.execute_d2f(frame),
             Opcode::I2b => self.execute_i2b(frame),
+            Opcode::Fcmpl => self.execute_fcmpl(frame),
+            Opcode::Fcmpg => self.execute_fcmpg(frame),
+            Opcode::Dcmpl => self.execute_dcmpl(frame),
+            Opcode::Dcmpg => self.execute_dcmpg(frame),
             Opcode::I2c => self.execute_i2c(frame),
             Opcode::I2s => self.execute_i2s(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
@@ -1522,6 +1526,102 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Compare two floats on the operand stack
+    /// If either value is NaN, push -1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_fcmpl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    -1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  fcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two floats on the operand stack
+    /// If either value is NaN, push 1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_fcmpg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  fcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two doubles on the operand stack
+    /// If either value is NaN, push -1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_dcmpl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    -1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  dcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two doubles on the operand stack
+    /// If either value is NaN, push 1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_dcmpg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  dcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
     /// Pop an integer value from the current frame's operand stack, cast it into a char, and
     /// finally push it back to the operand stack
     fn execute_i2c(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
@@ -2146,8 +2246,9 @@ impl InstructionExecutor {
             let params_count = self.count_method_params(&descriptor);
             let mut params = Vec::new();
 
-            for _ in 0..params_count {
+            for i in 0..params_count {
                 if let Some(arg) = frame.operand_stack.pop() {
+                    debug_log!("param[{}] = {:?}", i, arg);
                     params.push(arg);
                 }
             }
