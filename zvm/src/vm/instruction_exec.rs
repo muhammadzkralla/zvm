@@ -693,7 +693,10 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop the top operand stack value
+    /// The pop instruction must not be used unless value is a value of a category 1 computational type
     fn execute_pop(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
         let stack_size = frame.operand_stack.len();
         debug_log!("stack_size: {}", stack_size);
         if stack_size > 0 {
@@ -706,7 +709,11 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop the top one or two operand stack values
+    /// Form1: each of value1 and value2 is a value of a category 1 computational type
+    /// Form2: value is a value of a category 2 computational type
     fn execute_pop2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
         let stack_size = frame.operand_stack.len();
         if stack_size > 1 {
             let value1 = frame.operand_stack.pop();
@@ -722,7 +729,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Swap the top two operand stack values
     fn execute_swap(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
         let stack_size = frame.operand_stack.len();
         if stack_size > 1 {
             frame.operand_stack.swap(stack_size - 1, stack_size - 2);
