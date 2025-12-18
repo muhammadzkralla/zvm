@@ -22,4 +22,12 @@ impl OperandStack {
     pub fn peek(&self) -> Option<&Value> {
         self.stack.last()
     }
+
+    pub fn len(&self) -> usize {
+        self.stack.len()
+    }
+
+    pub fn swap(&mut self, a: usize, b: usize) {
+        self.stack.swap(a, b);
+    }
 }

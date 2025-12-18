@@ -2,6 +2,7 @@
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub enum Opcode {
+    Nop = 0x00,           // 0
     Iconstm1 = 0x02,      // 2
     Iconst0 = 0x03,       // 3
     Iconst1 = 0x04,       // 4
@@ -71,6 +72,9 @@ pub enum Opcode {
     Astore_1 = 0x4C,      // 76
     Astore_2 = 0x4D,      // 77
     Astore_3 = 0x4E,      // 78
+    Pop = 0x57,           // 87
+    Pop2 = 0x58,          // 88
+    Swap = 0x5F,          // 95
     Iadd = 0x60,          // 96
     Ladd = 0x61,          // 97
     Fadd = 0x62,          // 98
@@ -121,12 +125,12 @@ pub enum Opcode {
     D2l = 0x8F,           // 143
     D2f = 0x90,           // 144
     I2b = 0x91,           // 145
+    I2c = 0x92,           // 146
+    I2s = 0x93,           // 147
     Fcmpl = 0x95,         // 149
     Fcmpg = 0x96,         // 150
     Dcmpl = 0x97,         // 151
     Dcmpg = 0x98,         // 152
-    I2c = 0x92,           // 146
-    I2s = 0x93,           // 147
     Ifeq = 0x99,          // 153
     Ifne = 0x9A,          // 154
     Iflt = 0x9B,          // 155
@@ -157,6 +161,7 @@ pub enum Opcode {
 impl From<u8> for Opcode {
     fn from(byte: u8) -> Self {
         match byte {
+            0x00 => Opcode::Nop,
             0x02 => Opcode::Iconstm1,
             0x03 => Opcode::Iconst0,
             0x04 => Opcode::Iconst1,
@@ -226,6 +231,9 @@ impl From<u8> for Opcode {
             0x4C => Opcode::Astore_1,
             0x4D => Opcode::Astore_2,
             0x4E => Opcode::Astore_3,
+            0x57 => Opcode::Pop,
+            0x58 => Opcode::Pop2,
+            0x5F => Opcode::Swap,
             0x60 => Opcode::Iadd,
             0x61 => Opcode::Ladd,
             0x62 => Opcode::Fadd,
