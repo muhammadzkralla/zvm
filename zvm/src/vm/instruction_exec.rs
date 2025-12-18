@@ -117,6 +117,9 @@ impl InstructionExecutor {
             Opcode::Astore_1 => self.execute_istore_1(frame),
             Opcode::Astore_2 => self.execute_istore_2(frame),
             Opcode::Astore_3 => self.execute_istore_3(frame),
+            Opcode::Pop => self.execute_pop(frame),
+            Opcode::Pop2 => self.execute_pop2(frame),
+            Opcode::Swap => self.execute_swap(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
             Opcode::Fadd => self.execute_fadd(frame),
@@ -320,6 +323,8 @@ impl InstructionExecutor {
         let value = frame.bytecode[*pc] as i8 as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  bipush {}", value);
+        let stack_size = frame.operand_stack.len();
+        debug_log!("stack_size: {}", stack_size);
 
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
@@ -681,6 +686,55 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_3[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop the top operand stack value
+    /// The pop instruction must not be used unless value is a value of a category 1 computational type
+    fn execute_pop(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        debug_log!("stack_size: {}", stack_size);
+        if stack_size > 0 {
+            let value = frame.operand_stack.pop();
+            debug_log!("  pop: {:?}", value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop the top one or two operand stack values
+    /// Form1: each of value1 and value2 is a value of a category 1 computational type
+    /// Form2: value is a value of a category 2 computational type
+    fn execute_pop2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            let value1 = frame.operand_stack.pop();
+            let value2 = frame.operand_stack.pop();
+            debug_log!("  pop2: {:?}, {:?}", value1, value2);
+        } else if stack_size > 0 {
+            let value = frame.operand_stack.pop();
+            debug_log!("  pop2: {:?}", value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Swap the top two operand stack values
+    fn execute_swap(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            frame.operand_stack.swap(stack_size - 1, stack_size - 2);
         } else {
             debug_log!("operand stack was empty!");
         }
