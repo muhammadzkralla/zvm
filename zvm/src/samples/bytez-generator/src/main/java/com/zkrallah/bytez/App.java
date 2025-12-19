@@ -6,5 +6,6 @@ public class App {
         GenerateHelloASM.generate();
         GenerateHelloByteBuddy.generate();
         GenerateSwap.generate();
+        DupBytecodeGenerator.generateDupTestClass();
     }
 }
