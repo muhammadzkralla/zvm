@@ -74,6 +74,12 @@ pub enum Opcode {
     Astore_3 = 0x4E,      // 78
     Pop = 0x57,           // 87
     Pop2 = 0x58,          // 88
+    Dup = 0x59,           // 89
+    Dup_x1 = 0x5A,        // 90
+    Dup_x2 = 0x5B,        // 91
+    Dup2 = 0x5C,          // 92
+    Dup2_x1 = 0x5D,       // 93
+    Dup2_x2 = 0x5E,       // 94
     Swap = 0x5F,          // 95
     Iadd = 0x60,          // 96
     Ladd = 0x61,          // 97
@@ -233,6 +239,12 @@ impl From<u8> for Opcode {
             0x4E => Opcode::Astore_3,
             0x57 => Opcode::Pop,
             0x58 => Opcode::Pop2,
+            0x59 => Opcode::Dup,
+            0x5A => Opcode::Dup_x1,
+            0x5B => Opcode::Dup_x2,
+            0x5C => Opcode::Dup2,
+            0x5D => Opcode::Dup2_x1,
+            0x5E => Opcode::Dup2_x2,
             0x5F => Opcode::Swap,
             0x60 => Opcode::Iadd,
             0x61 => Opcode::Ladd,
