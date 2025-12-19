@@ -117,6 +117,15 @@ impl InstructionExecutor {
             Opcode::Astore_1 => self.execute_istore_1(frame),
             Opcode::Astore_2 => self.execute_istore_2(frame),
             Opcode::Astore_3 => self.execute_istore_3(frame),
+            Opcode::Pop => self.execute_pop(frame),
+            Opcode::Pop2 => self.execute_pop2(frame),
+            Opcode::Dup => self.execute_dup(frame),
+            Opcode::Dup_x1 => self.execute_dup_x1(frame),
+            Opcode::Dup_x2 => self.execute_dup_x2(frame),
+            Opcode::Dup2 => self.execute_dup2(frame),
+            Opcode::Dup2_x1 => self.execute_dup2_x1(frame),
+            Opcode::Dup2_x2 => self.execute_dup2_x2(frame),
+            Opcode::Swap => self.execute_swap(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
             Opcode::Fadd => self.execute_fadd(frame),
@@ -320,6 +329,8 @@ impl InstructionExecutor {
         let value = frame.bytecode[*pc] as i8 as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  bipush {}", value);
+        let stack_size = frame.operand_stack.len();
+        debug_log!("stack_size: {}", stack_size);
 
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
@@ -681,6 +692,220 @@ impl InstructionExecutor {
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_3[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop the top operand stack value
+    /// The pop instruction must not be used unless value is a value of a category 1 computational type
+    fn execute_pop(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        debug_log!("stack_size: {}", stack_size);
+        if stack_size > 0 {
+            let value = frame.operand_stack.pop();
+            debug_log!("  pop: {:?}", value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop the top one or two operand stack values
+    /// Form1: each of value1 and value2 is a value of a category 1 computational type
+    /// Form2: value is a value of a category 2 computational type
+    fn execute_pop2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            let value1 = frame.operand_stack.pop();
+            let value2 = frame.operand_stack.pop();
+            debug_log!("  pop2: {:?}, {:?}", value1, value2);
+        } else if stack_size > 0 {
+            let value = frame.operand_stack.pop();
+            debug_log!("  pop2: {:?}", value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// ..., value →
+    // ..., value, value
+    fn execute_dup(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 0 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push(value.clone());
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    fn execute_dup_x1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value3, value2, value1 →
+    // ..., value1, value3, value2, value1
+    // where value1, value2, and value3 are all values of a category 1 computational type
+    // Form 2:
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    // where value1 is a value of a category 1 computational type and value2 is a value of a category 2 computational type
+    fn execute_dup_x2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 2 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 3);
+            }
+        } else if stack_size > 1 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value2, value1 →
+    // ..., value2, value1, value2, value1
+    // where both value1 and value2 are values of a category 1 computational type
+    // Form 2:
+    // ..., value →
+    // ..., value, value
+    // where value is a value of a category 2 computational type
+    fn execute_dup2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            let value1 = frame.operand_stack.peek_at(stack_size - 1).cloned();
+            let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+            if let (Some(v1), Some(v2)) = (value1, value2) {
+                frame.operand_stack.push(v2);
+                frame.operand_stack.push(v1);
+            }
+        } else if stack_size > 0 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push(value.clone());
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value3, value2, value1 →
+    // ..., value2, value1, value3, value2, value1
+    // where value1, value2, and value3 are all values of a category 1 computational type
+    // Form 2:
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    // where value1 is a value of a category 2 computational type and value2 is a value of a category 1 computational type
+    fn execute_dup2_x1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 2 {
+            let value1 = frame.operand_stack.peek_at(stack_size - 1).cloned();
+            let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+            if let (Some(v1), Some(v2)) = (value1, value2) {
+                frame.operand_stack.push_at(v1, stack_size - 3);
+                frame.operand_stack.push_at(v2, stack_size - 3);
+            }
+        } else if stack_size > 1 {
+            if let Some(value1) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value1.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value4, value3, value2, value1 →
+    // ..., value2, value1, value4, value3, value2, value1
+    // where value1, value2, value3, and value4 are all values of a category 1 computational type
+    // Form 2:
+    // ..., value3, value2, value1 →
+    // ..., value1, value3, value2, value1
+    // where value1 is a value of a category 2 computational type and value2 and value3 are both values of a category 1 computational type
+    // Form 3:
+    // ..., value3, value2, value1 →
+    // ..., value2, value1, value3, value2, value1
+    // where value1 and value2 are both values of a category 1 computational type and value3 is a value of a category 2 computational type
+    // Form 4:
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    // where value1 and value2 are both values of a category 2 computational type
+    fn execute_dup2_x2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 3 {
+            let value1 = frame.operand_stack.peek_at(stack_size - 1).cloned();
+            let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+            if let (Some(v1), Some(v2)) = (value1, value2) {
+                frame.operand_stack.push_at(v1, stack_size - 4);
+                frame.operand_stack.push_at(v2, stack_size - 4);
+            }
+        } else if stack_size > 2 {
+            let value1 = frame.operand_stack.peek().cloned();
+
+            if let Some(v1) = value1 {
+                if matches!(v1, Value::Long(_) | Value::Double(_)) {
+                    frame.operand_stack.push_at(v1, stack_size - 3);
+                } else {
+                    let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+                    if let Some(v2) = value2 {
+                        frame.operand_stack.push_at(v1, stack_size - 3);
+                        frame.operand_stack.push_at(v2, stack_size - 3);
+                    }
+                }
+            }
+        } else if stack_size > 1 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Swap the top two operand stack values
+    fn execute_swap(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            frame.operand_stack.swap(stack_size - 1, stack_size - 2);
         } else {
             debug_log!("operand stack was empty!");
         }
