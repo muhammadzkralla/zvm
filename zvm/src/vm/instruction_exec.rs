@@ -183,6 +183,7 @@ impl InstructionExecutor {
             Opcode::Dcmpg => self.execute_dcmpg(frame),
             Opcode::I2c => self.execute_i2c(frame),
             Opcode::I2s => self.execute_i2s(frame),
+            Opcode::Lcmp => self.execute_lcmp(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -1866,6 +1867,27 @@ impl InstructionExecutor {
             let result = (value as i16) as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  i2s {} -> {}", value, result);
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two longs on the operand stack
+    /// push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_lcmp(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  lcmp {} cmp {} = {}", value1, value2, result);
+            }
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
