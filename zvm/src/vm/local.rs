@@ -1,7 +1,7 @@
 use crate::vm::value::Value;
 
 /// Local Variables for method execution
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LocalVariables {
     pub vars: Vec<Option<Value>>,
 }
