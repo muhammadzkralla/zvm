@@ -133,6 +133,7 @@ pub enum Opcode {
     I2b = 0x91,           // 145
     I2c = 0x92,           // 146
     I2s = 0x93,           // 147
+    Lcmp = 0x94,          // 148
     Fcmpl = 0x95,         // 149
     Fcmpg = 0x96,         // 150
     Dcmpl = 0x97,         // 151
@@ -302,6 +303,7 @@ impl From<u8> for Opcode {
             0x98 => Opcode::Dcmpg,
             0x92 => Opcode::I2c,
             0x93 => Opcode::I2s,
+            0x94 => Opcode::Lcmp,
             0x99 => Opcode::Ifeq,
             0x9A => Opcode::Ifne,
             0x9B => Opcode::Iflt,
