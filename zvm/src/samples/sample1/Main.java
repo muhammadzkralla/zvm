@@ -2,11 +2,12 @@ public class Main {
     private static void foo(int num1, int num2) {
         System.out.println(num1);
         System.out.println(num2);
-        bar();
+        String s = bar();
+        System.out.println(s);
     }
 
-    private static void bar() {
-        System.out.println("Wait... WTF IT WORKED????? jhafkjhlskjhakjg");
+    private static String bar() {
+        return "Wait... WTF IT WORKED????? jhafkjhlskjhakjg";
     }
 
     public static void main(String[] args) {

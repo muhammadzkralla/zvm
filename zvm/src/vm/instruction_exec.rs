@@ -2532,38 +2532,25 @@ impl InstructionExecutor {
 
             call_stack.push_frame(method_name, bytecode, max_locals as usize, params);
 
-            let mut top_frame = call_stack
-                .current_frame()
-                .ok_or("Could not acquire top frame")?
-                .clone();
+            let execution_result = unsafe {
+                // Get a raw pointer to self
+                let self_ptr = call_stack as *mut CallStack;
 
-            //TODO: Handle frames returning stuff
-            match top_frame.execute_frame(class_file, runtime_data_area, call_stack) {
+                // Borrow current frame mutably
+                if let Some(current_frame) = (*self_ptr).current_frame() {
+                    // Pass self through the raw pointer ( second mutable borrow )
+                    current_frame.execute_frame(class_file, runtime_data_area, &mut *self_ptr)
+                } else {
+                    Err("No current frame found".to_string())
+                }
+            };
+
+            match execution_result {
                 Ok(returned) => {
-                    call_stack.print_frames();
-                    if let Some(popped_frame) = call_stack.pop_frame() {
-                        debug_log!(
-                            "\n\nFINISHED EXECUTING STATIC FRAME: {}\n\n",
-                            popped_frame.method_name.unwrap_or_default()
-                        );
-                        call_stack.print_frames();
-
-                        if let Some(value) = returned {
-                            debug_log!("SOME VALUE RETURNED!!!!");
-                            if let Some(invoker_frame) = call_stack.current_frame() {
-                                debug_log!(
-                                    "\n\nCONTROL RETURNED TO INVOKER: {}\n\n",
-                                    invoker_frame.method_name.clone().unwrap_or_default()
-                                );
-
-                                invoker_frame.operand_stack.push(value);
-                                let val = invoker_frame.operand_stack.peek().expect(
-                                    "ailed to peek operand stack after pushing return value",
-                                );
-                                debug_log!("val: {:?}", val);
-                            }
-                        } else {
-                            debug_log!("no value returned!!!!");
+                    call_stack.pop_frame();
+                    if let Some(value) = returned {
+                        if let Some(invoker_frame) = call_stack.current_frame() {
+                            invoker_frame.operand_stack.push(value);
                         }
                     }
                 }
