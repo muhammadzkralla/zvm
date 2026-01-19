@@ -2566,6 +2566,9 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Create a new primitive array
+    /// of the type corresponding to the next byte's value of the frame's bytecode
+    /// and of the count corresponding to the top value of the frame's operand stack
     fn execute_newarray(
         &self,
         frame: &mut Frame,
