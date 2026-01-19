@@ -214,6 +214,7 @@ impl InstructionExecutor {
             Opcode::Invokestatic => {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
             }
+            Opcode::Newarray => self.execute_newarray(frame, pc),
             Opcode::Goto_w => self.execute_goto_w(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
@@ -2560,6 +2561,73 @@ impl InstructionExecutor {
             }
 
             //TODO: Handle external class methods
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_newarray(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let atype = frame.bytecode[*pc];
+
+        //TODO: Handle empty stack exceptions
+        if let Some(Value::Int(count)) = frame.operand_stack.pop() {
+            if count < 0 {
+                return Err(format!("NegativeArraySizeException: {}", count));
+            }
+
+            let array = match atype {
+                4 => {
+                    // false = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                5 => {
+                    // '\0' = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                6 => {
+                    vec![Value::Float(0.0); count as usize]
+                }
+                7 => {
+                    vec![Value::Double(0.0); count as usize]
+                }
+                8 => {
+                    // byte stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                9 => {
+                    // short stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                10 => {
+                    vec![Value::Int(0); count as usize]
+                }
+                11 => {
+                    vec![Value::Long(0); count as usize]
+                }
+                _ => return Err(format!("Invalid array type: {}", atype)),
+            };
+
+            // Push array reference onto the stack
+            frame.operand_stack.push(Value::Array(array));
+
+            let type_name = match atype {
+                4 => "boolean",
+                5 => "char",
+                6 => "float",
+                7 => "double",
+                8 => "byte",
+                9 => "short",
+                10 => "int",
+                11 => "long",
+                _ => "unknown",
+            };
+
+            debug_log!("  newarray {} [length={}]", type_name, count);
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
