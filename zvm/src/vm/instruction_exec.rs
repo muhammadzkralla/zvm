@@ -2637,6 +2637,8 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Calculate the length of some array by popping its arrayref from the frame's operand stack
+    /// and pushing its length back onto the operand stack
     fn execute_arraylength(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if frame.operand_stack.len() == 0 {
             return Err("Stack underflow: arraylength requires 1 operand".to_string());
