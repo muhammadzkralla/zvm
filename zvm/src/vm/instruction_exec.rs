@@ -215,6 +215,7 @@ impl InstructionExecutor {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
             }
             Opcode::Newarray => self.execute_newarray(frame, pc),
+            Opcode::Arraylength => self.execute_arraylength(frame),
             Opcode::Goto_w => self.execute_goto_w(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
@@ -2634,6 +2635,35 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_arraylength(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() == 0 {
+            return Err("Stack underflow: arraylength requires 1 operand".to_string());
+        }
+
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                let length = arrayref.len();
+
+                // arrays can't be larger than i32::MAX in JVM
+                let length_i32 = if length > i32::MAX as usize {
+                    return Err(format!("Array too large: {}", length));
+                } else {
+                    length as i32
+                };
+
+                frame.operand_stack.push(Value::Int(length_i32));
+                debug_log!("  arraylength [length={}]", length);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            //TODO: Handle null references
+            Some(other) => Err(format!(
+                "arraylength: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("arraylength: failed to pop value from stack".to_string()),
+        }
     }
 
     /// Unconditionally branch to a target address specified by a 32-bit signed offset

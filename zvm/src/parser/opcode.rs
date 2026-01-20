@@ -163,6 +163,7 @@ pub enum Opcode {
     Invokespecial = 0xB7, // 183
     Invokestatic = 0xB8,  // 184
     Newarray = 0xBC,      // 188
+    Arraylength = 0xBE,   // 190
     Goto_w = 0xC8,        // 200
 }
 
@@ -330,6 +331,7 @@ impl From<u8> for Opcode {
             0xB7 => Opcode::Invokespecial,
             0xB8 => Opcode::Invokestatic,
             0xBC => Opcode::Newarray,
+            0xBE => Opcode::Arraylength,
             0xC8 => Opcode::Goto_w,
             _ => panic!("Unknown opcode: 0x{:02X}", byte),
         }
