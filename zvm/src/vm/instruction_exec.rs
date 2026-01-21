@@ -214,6 +214,8 @@ impl InstructionExecutor {
             Opcode::Invokestatic => {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
             }
+            Opcode::Newarray => self.execute_newarray(frame, pc),
+            Opcode::Arraylength => self.execute_arraylength(frame),
             Opcode::Goto_w => self.execute_goto_w(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
@@ -2563,6 +2565,107 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Create a new primitive array
+    /// of the type corresponding to the next byte's value of the frame's bytecode
+    /// and of the count corresponding to the top value of the frame's operand stack
+    fn execute_newarray(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let atype = frame.bytecode[*pc];
+
+        //TODO: Handle empty stack exceptions
+        if let Some(Value::Int(count)) = frame.operand_stack.pop() {
+            if count < 0 {
+                return Err(format!("NegativeArraySizeException: {}", count));
+            }
+
+            let array = match atype {
+                4 => {
+                    // false = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                5 => {
+                    // '\0' = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                6 => {
+                    vec![Value::Float(0.0); count as usize]
+                }
+                7 => {
+                    vec![Value::Double(0.0); count as usize]
+                }
+                8 => {
+                    // byte stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                9 => {
+                    // short stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                10 => {
+                    vec![Value::Int(0); count as usize]
+                }
+                11 => {
+                    vec![Value::Long(0); count as usize]
+                }
+                _ => return Err(format!("Invalid array type: {}", atype)),
+            };
+
+            // Push array reference onto the stack
+            frame.operand_stack.push(Value::Array(array));
+
+            let type_name = match atype {
+                4 => "boolean",
+                5 => "char",
+                6 => "float",
+                7 => "double",
+                8 => "byte",
+                9 => "short",
+                10 => "int",
+                11 => "long",
+                _ => "unknown",
+            };
+
+            debug_log!("  newarray {} [length={}]", type_name, count);
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Calculate the length of some array by popping its arrayref from the frame's operand stack
+    /// and pushing its length back onto the operand stack
+    fn execute_arraylength(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() == 0 {
+            return Err("Stack underflow: arraylength requires 1 operand".to_string());
+        }
+
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                let length = arrayref.len();
+
+                // arrays can't be larger than i32::MAX in JVM
+                let length_i32 = if length > i32::MAX as usize {
+                    return Err(format!("Array too large: {}", length));
+                } else {
+                    length as i32
+                };
+
+                frame.operand_stack.push(Value::Int(length_i32));
+                debug_log!("  arraylength [length={}]", length);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            //TODO: Handle null references
+            Some(other) => Err(format!(
+                "arraylength: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("arraylength: failed to pop value from stack".to_string()),
+        }
     }
 
     /// Unconditionally branch to a target address specified by a 32-bit signed offset
