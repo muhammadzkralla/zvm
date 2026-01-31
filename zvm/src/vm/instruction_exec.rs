@@ -1,4 +1,4 @@
-use std::char;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     debug_log,
@@ -597,29 +597,55 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
-    /// Load a reference value from an array and push it to the operand stack
-    fn execute_aaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
-        //TODO: Handle missing index and array ref and StackOverFlowException
-        if let Some(Value::Int(index)) = frame.operand_stack.pop() {
-            if let Some(arrayref) = frame.operand_stack.pop() {
-                match arrayref {
-                    Value::Array(ref arr) => {
-                        if index >= 0 && (index as usize) < arr.len() {
-                            let item = arr[index as usize].clone();
-                            frame.operand_stack.push(item.clone());
-                            debug_log!("  aaload [{}] = {:?}", index, item);
-                        } else {
-                            return Err(format!("Array index out of bounds: {}", index));
-                        }
-                    }
-                    _ => {
-                        return Err(format!("Expected array reference, got {:?}", arrayref));
                     }
                 }
             }
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_aaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: aaload requires 2 operands".to_string());
         }
 
-        Ok(InstructionCompleted::ContinueMethodExecution)
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("aaload: expected int index, got {:?}", other)),
+            None => return Err("aaload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                let index_usize = index as usize;
+
+                // Check bounds
+                if index_usize >= array.len() || index_usize < 0 {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array and clone it because we need to push it
+                // NOTE: I think we should wrap the Reference(String) value
+                // type in a Rc<RefCell<>> too to properly follow the JVM specs
+                let item = array[index_usize].clone();
+
+                debug_log!("  aaload [{}] = {:?}", index, item.clone());
+                frame.operand_stack.push(item);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("aaload: expected array reference, got {:?}", other)),
+            None => Err("aaload: failed to pop arrayref".to_string()),
+        }
     }
 
     /// Store an integer value popped from the operand stack
