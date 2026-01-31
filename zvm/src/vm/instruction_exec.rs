@@ -87,6 +87,7 @@ impl InstructionExecutor {
             Opcode::Aload_1 => self.execute_aload_1(frame),
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
+            Opcode::Iaload => self.execute_iaload(frame),
             Opcode::Aaload => self.execute_aaload(frame),
             //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
@@ -117,6 +118,7 @@ impl InstructionExecutor {
             Opcode::Astore_1 => self.execute_istore_1(frame),
             Opcode::Astore_2 => self.execute_istore_2(frame),
             Opcode::Astore_3 => self.execute_istore_3(frame),
+            Opcode::Iastore => self.execute_iastore(frame),
             Opcode::Pop => self.execute_pop(frame),
             Opcode::Pop2 => self.execute_pop2(frame),
             Opcode::Dup => self.execute_dup(frame),
@@ -597,9 +599,53 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Load int from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_iaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("iaload: expected int index, got {:?}", other)),
+            None => return Err("iaload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                let index_usize = index as usize;
+
+                // Check bounds
+                if index_usize >= array.len() || index_usize < 0 {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Int(value) => {
+                        frame.operand_stack.push(Value::Int(*value));
+                        debug_log!("  iaload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
                     }
+                    other => Err(format!("iaload: array element is not int, got {:?}", other)),
                 }
             }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("iaload: expected array reference, got {:?}", other)),
+            None => Err("iaload: failed to pop arrayref".to_string()),
+        }
+    }
+
     /// Load a reference value from an array and push it to the operand stack
     fn execute_aaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if frame.operand_stack.len() < 2 {
@@ -728,6 +774,58 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_iastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("iastore: expected int value, got {:?}", other)),
+            None => return Err("iastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("iastore: expected int index, got {:?}", other)),
+            None => return Err("iastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                let index_usize = index as usize;
+
+                // Check bounds
+                if index_usize >= array.len() || index_usize < 0 {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Int(value);
+                debug_log!("  iastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "iastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("iastore: failed to pop arrayref".to_string()),
+        }
+    }
 
     /// Pop the top operand stack value
     /// The pop instruction must not be used unless value is a value of a category 1 computational type
