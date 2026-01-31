@@ -728,6 +728,7 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+
     /// Pop the top operand stack value
     /// The pop instruction must not be used unless value is a value of a category 1 computational type
     fn execute_pop(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
@@ -2643,7 +2644,9 @@ impl InstructionExecutor {
             };
 
             // Push array reference onto the stack
-            frame.operand_stack.push(Value::Array(array));
+            frame
+                .operand_stack
+                .push(Value::Array(Rc::new(RefCell::new(array))));
 
             let type_name = match atype {
                 4 => "boolean",
@@ -2672,7 +2675,7 @@ impl InstructionExecutor {
 
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                let length = arrayref.len();
+                let length = arrayref.borrow().len();
 
                 // arrays can't be larger than i32::MAX in JVM
                 let length_i32 = if length > i32::MAX as usize {
