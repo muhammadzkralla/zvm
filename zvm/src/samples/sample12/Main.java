@@ -33,8 +33,8 @@ class Main {
         System.out.println(longArray.length);
 
         // Test array access
-        // intArray[0] = 42;
-        // System.out.println(intArray[0]); // 42
+        intArray[0] = 42;
+        System.out.println(intArray[0]); // 42
 
         // floatArray[1] = 3.14f;
         // System.out.println(floatArray[1]); // 3.14
