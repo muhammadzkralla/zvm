@@ -89,6 +89,7 @@ impl InstructionExecutor {
             Opcode::Aload_3 => self.execute_aload_3(frame),
             Opcode::Iaload => self.execute_iaload(frame),
             Opcode::Laload => self.execute_laload(frame),
+            Opcode::Faload => self.execute_faload(frame),
             Opcode::Aaload => self.execute_aaload(frame),
             //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
@@ -121,6 +122,7 @@ impl InstructionExecutor {
             Opcode::Astore_3 => self.execute_istore_3(frame),
             Opcode::Iastore => self.execute_iastore(frame),
             Opcode::Lastore => self.execute_lastore(frame),
+            Opcode::Fastore => self.execute_fastore(frame),
             Opcode::Pop => self.execute_pop(frame),
             Opcode::Pop2 => self.execute_pop2(frame),
             Opcode::Dup => self.execute_dup(frame),
@@ -684,7 +686,10 @@ impl InstructionExecutor {
                         debug_log!("  laload [{}] = {}", index, value);
                         Ok(InstructionCompleted::ContinueMethodExecution)
                     }
-                    other => Err(format!("laload: array element is not int, got {:?}", other)),
+                    other => Err(format!(
+                        "laload: array element is not long, got {:?}",
+                        other
+                    )),
                 }
             }
             Some(Value::Null) => {
@@ -692,6 +697,56 @@ impl InstructionExecutor {
             }
             Some(other) => Err(format!("laload: expected array reference, got {:?}", other)),
             None => Err("laload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load float from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_faload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("faload: expected int index, got {:?}", other)),
+            None => return Err("faload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                let index_usize = index as usize;
+
+                // Check bounds
+                if index_usize >= array.len() || index_usize < 0 {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Float(value) => {
+                        frame.operand_stack.push(Value::Float(*value));
+                        debug_log!("  faload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "faload: array element is not float, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("faload: expected array reference, got {:?}", other)),
+            None => Err("faload: failed to pop arrayref".to_string()),
         }
     }
 
@@ -926,6 +981,59 @@ impl InstructionExecutor {
                 other
             )),
             None => Err("lastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_fastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Float(v)) => v,
+            Some(other) => return Err(format!("fastore: expected int value, got {:?}", other)),
+            None => return Err("fastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("fastore: expected int index, got {:?}", other)),
+            None => return Err("fastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                let index_usize = index as usize;
+
+                // Check bounds
+                if index_usize >= array.len() || index_usize < 0 {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Float(value);
+                debug_log!("  fastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "fastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("fastore: failed to pop arrayref".to_string()),
         }
     }
 

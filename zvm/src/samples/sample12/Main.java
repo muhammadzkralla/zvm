@@ -39,7 +39,7 @@ class Main {
         longArray[0] = 123123123L;
         System.out.println(longArray[0]);
 
-        // floatArray[1] = 3.14f;
-        // System.out.println(floatArray[1]); // 3.14
+        floatArray[1] = 3.14f;
+        System.out.println(floatArray[1]); // 3.14
     }
 }
