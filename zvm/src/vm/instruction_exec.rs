@@ -620,13 +620,18 @@ impl InstructionExecutor {
         // Pop array reference
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                // Borrow the array immutably
-                let array = arrayref.borrow();
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
 
                 let index_usize = index as usize;
 
-                // Check bounds
-                if index_usize >= array.len() || index_usize < 0 {
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
                     return Err(format!(
                         "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
                         index,
@@ -667,13 +672,18 @@ impl InstructionExecutor {
         // Pop array reference
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                // Borrow the array immutably
-                let array = arrayref.borrow();
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
 
                 let index_usize = index as usize;
 
-                // Check bounds
-                if index_usize >= array.len() || index_usize < 0 {
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
                     return Err(format!(
                         "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
                         index,
@@ -717,13 +727,18 @@ impl InstructionExecutor {
         // Pop array reference
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                // Borrow the array immutably
-                let array = arrayref.borrow();
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
 
                 let index_usize = index as usize;
 
-                // Check bounds
-                if index_usize >= array.len() || index_usize < 0 {
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
                     return Err(format!(
                         "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
                         index,
@@ -768,13 +783,18 @@ impl InstructionExecutor {
         // Pop array reference
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                // Borrow the array immutably
-                let array = arrayref.borrow();
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
 
                 let index_usize = index as usize;
 
-                // Check bounds
-                if index_usize >= array.len() || index_usize < 0 {
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
                     return Err(format!(
                         "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
                         index,
@@ -782,15 +802,20 @@ impl InstructionExecutor {
                     ));
                 }
 
-                // Get value from array and clone it because we need to push it
+                // Get value from array
                 // NOTE: I think we should wrap the Reference(String) value
                 // type in a Rc<RefCell<>> too to properly follow the JVM specs
-                let item = array[index_usize].clone();
-
-                debug_log!("  aaload [{}] = {:?}", index, item.clone());
-                frame.operand_stack.push(item);
-
-                Ok(InstructionCompleted::ContinueMethodExecution)
+                match &array[index_usize] {
+                    Value::Reference(value) => {
+                        frame.operand_stack.push(Value::Reference(value.clone()));
+                        debug_log!("  aaload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "aaload: array element is not reference, got {:?}",
+                        other
+                    )),
+                }
             }
             Some(Value::Null) => {
                 Err("NullPointerException: Cannot load from null array".to_string())
@@ -955,13 +980,18 @@ impl InstructionExecutor {
         // Pop array reference
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                // Borrow the array mutably
-                let mut array = arrayref.borrow_mut();
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
 
                 let index_usize = index as usize;
 
-                // Check bounds
-                if index_usize >= array.len() || index_usize < 0 {
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
                     return Err(format!(
                         "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
                         index,
@@ -1008,13 +1038,18 @@ impl InstructionExecutor {
         // Pop array reference
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                // Borrow the array mutably
-                let mut array = arrayref.borrow_mut();
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
 
                 let index_usize = index as usize;
 
-                // Check bounds
-                if index_usize >= array.len() || index_usize < 0 {
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
                     return Err(format!(
                         "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
                         index,
@@ -1061,13 +1096,18 @@ impl InstructionExecutor {
         // Pop array reference
         match frame.operand_stack.pop() {
             Some(Value::Array(arrayref)) => {
-                // Borrow the array mutably
-                let mut array = arrayref.borrow_mut();
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
 
                 let index_usize = index as usize;
 
-                // Check bounds
-                if index_usize >= array.len() || index_usize < 0 {
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
                     return Err(format!(
                         "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
                         index,
