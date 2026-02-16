@@ -50,6 +50,7 @@ pub enum Opcode {
     Laload = 0x2F,        // 47
     Faload = 0x30,        // 48
     Aaload = 0x32,        // 50
+    Baload = 0x33,        // 51
     Istore = 0x36,        // 54
     Lstore = 0x37,        // 55
     Fstore = 0x38,        // 56
@@ -78,6 +79,7 @@ pub enum Opcode {
     Iastore = 0x4F,       // 79
     Lastore = 0x50,       // 80
     Fastore = 0x51,       // 81
+    Bastore = 0x54,       // 84
     Pop = 0x57,           // 87
     Pop2 = 0x58,          // 88
     Dup = 0x59,           // 89
@@ -224,6 +226,7 @@ impl From<u8> for Opcode {
             0x2F => Opcode::Laload,
             0x30 => Opcode::Faload,
             0x32 => Opcode::Aaload,
+            0x33 => Opcode::Baload,
             0x36 => Opcode::Istore,
             0x37 => Opcode::Lstore,
             0x38 => Opcode::Fstore,
@@ -252,6 +255,7 @@ impl From<u8> for Opcode {
             0x4F => Opcode::Iastore,
             0x50 => Opcode::Lastore,
             0x51 => Opcode::Fastore,
+            0x54 => Opcode::Bastore,
             0x57 => Opcode::Pop,
             0x58 => Opcode::Pop2,
             0x59 => Opcode::Dup,

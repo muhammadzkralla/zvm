@@ -91,6 +91,7 @@ impl InstructionExecutor {
             Opcode::Laload => self.execute_laload(frame),
             Opcode::Faload => self.execute_faload(frame),
             Opcode::Aaload => self.execute_aaload(frame),
+            Opcode::Baload => self.execute_baload(frame),
             //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
             // as I don't do type validation yet, but in the future,
@@ -123,6 +124,7 @@ impl InstructionExecutor {
             Opcode::Iastore => self.execute_iastore(frame),
             Opcode::Lastore => self.execute_lastore(frame),
             Opcode::Fastore => self.execute_fastore(frame),
+            Opcode::Bastore => self.execute_bastore(frame),
             Opcode::Pop => self.execute_pop(frame),
             Opcode::Pop2 => self.execute_pop2(frame),
             Opcode::Dup => self.execute_dup(frame),
@@ -798,6 +800,59 @@ impl InstructionExecutor {
         }
     }
 
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_baload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: baload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("baload: expected int index, got {:?}", other)),
+            None => return Err("baload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a byte stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  baload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("baload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("baload: expected array reference, got {:?}", other)),
+            None => Err("baload: failed to pop arrayref".to_string()),
+        }
+    }
+
     /// Store an integer value popped from the operand stack
     /// at the index of the next byte's value from the bytecode in the frame's local variables
     fn execute_istore(
@@ -1034,6 +1089,65 @@ impl InstructionExecutor {
                 other
             )),
             None => Err("fastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_bastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("bastore: expected int value, got {:?}", other)),
+            None => return Err("bastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("bastore: expected int index, got {:?}", other)),
+            None => return Err("bastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as i8) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  bastore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "bastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("bastore: failed to pop arrayref".to_string()),
         }
     }
 

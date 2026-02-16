@@ -40,6 +40,11 @@ class Main {
         System.out.println(longArray[0]);
 
         floatArray[1] = 3.14f;
-        System.out.println(floatArray[1]); // 3.14
+        System.out.println(floatArray[1]);
+
+        boolArray[0] = true;
+        boolArray[1] = false;
+        System.out.println(boolArray[0]);
+        System.out.println(boolArray[1]);
     }
 }
