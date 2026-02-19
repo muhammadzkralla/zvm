@@ -42,6 +42,9 @@ class Main {
         floatArray[1] = 3.14f;
         System.out.println(floatArray[1]);
 
+        doubleArray[1] = 123123123.123123123d;
+        System.out.println(doubleArray[1]);
+
         boolArray[0] = true;
         boolArray[1] = false;
         System.out.println(boolArray[0]);
