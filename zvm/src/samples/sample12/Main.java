@@ -5,8 +5,8 @@ class Main {
         System.out.println(boolArray.length);
 
         // Create char array
-        char[] charArrray = new char[4];
-        System.out.println(charArrray.length);
+        char[] charArray = new char[4];
+        System.out.println(charArray.length);
 
         // Create float array
         float[] floatArray = new float[3];
@@ -49,5 +49,18 @@ class Main {
         boolArray[1] = false;
         System.out.println(boolArray[0]);
         System.out.println(boolArray[1]);
+
+        byteArray[0] = 127;
+        byteArray[1] = -128;
+
+        System.out.println(byteArray[0]);
+        System.out.println(byteArray[1]);
+
+        charArray[0] = 'A'; // 65
+        charArray[1] = 40000; // Valid char (outside signed i16 range!)
+
+        System.out.println((int) charArray[0]); // 65
+        System.out.println((int) charArray[1]); // 40000 (not -25536!)
+        System.out.println((int) charArray[2]); // 0 (65536 & 0xFFFF = 0)
     }
 }
