@@ -46,7 +46,14 @@ pub enum Opcode {
     Aload_1 = 0x2B,       // 43
     Aload_2 = 0x2C,       // 44
     Aload_3 = 0x2D,       // 45
+    Iaload = 0x2E,        // 46
+    Laload = 0x2F,        // 47
+    Faload = 0x30,        // 48
+    Daload = 0x31,        // 49
     Aaload = 0x32,        // 50
+    Baload = 0x33,        // 51
+    Caload = 0x34,        // 52
+    Saload = 0x35,        // 53
     Istore = 0x36,        // 54
     Lstore = 0x37,        // 55
     Fstore = 0x38,        // 56
@@ -72,6 +79,13 @@ pub enum Opcode {
     Astore_1 = 0x4C,      // 76
     Astore_2 = 0x4D,      // 77
     Astore_3 = 0x4E,      // 78
+    Iastore = 0x4F,       // 79
+    Lastore = 0x50,       // 80
+    Fastore = 0x51,       // 81
+    Dastore = 0x52,       // 82
+    Bastore = 0x54,       // 84
+    Castore = 0x55,       // 85
+    Sastore = 0x56,       // 86
     Pop = 0x57,           // 87
     Pop2 = 0x58,          // 88
     Dup = 0x59,           // 89
@@ -162,6 +176,8 @@ pub enum Opcode {
     Invokevirtual = 0xB6, // 182
     Invokespecial = 0xB7, // 183
     Invokestatic = 0xB8,  // 184
+    Newarray = 0xBC,      // 188
+    Arraylength = 0xBE,   // 190
     Goto_w = 0xC8,        // 200
 }
 
@@ -212,7 +228,14 @@ impl From<u8> for Opcode {
             0x2B => Opcode::Aload_1,
             0x2C => Opcode::Aload_2,
             0x2D => Opcode::Aload_3,
+            0x2E => Opcode::Iaload,
+            0x2F => Opcode::Laload,
+            0x30 => Opcode::Faload,
+            0x31 => Opcode::Daload,
             0x32 => Opcode::Aaload,
+            0x33 => Opcode::Baload,
+            0x34 => Opcode::Caload,
+            0x35 => Opcode::Saload,
             0x36 => Opcode::Istore,
             0x37 => Opcode::Lstore,
             0x38 => Opcode::Fstore,
@@ -238,6 +261,13 @@ impl From<u8> for Opcode {
             0x4C => Opcode::Astore_1,
             0x4D => Opcode::Astore_2,
             0x4E => Opcode::Astore_3,
+            0x4F => Opcode::Iastore,
+            0x50 => Opcode::Lastore,
+            0x51 => Opcode::Fastore,
+            0x52 => Opcode::Dastore,
+            0x54 => Opcode::Bastore,
+            0x55 => Opcode::Castore,
+            0x56 => Opcode::Sastore,
             0x57 => Opcode::Pop,
             0x58 => Opcode::Pop2,
             0x59 => Opcode::Dup,
@@ -328,6 +358,8 @@ impl From<u8> for Opcode {
             0xB6 => Opcode::Invokevirtual,
             0xB7 => Opcode::Invokespecial,
             0xB8 => Opcode::Invokestatic,
+            0xBC => Opcode::Newarray,
+            0xBE => Opcode::Arraylength,
             0xC8 => Opcode::Goto_w,
             _ => panic!("Unknown opcode: 0x{:02X}", byte),
         }

@@ -1,4 +1,4 @@
-use std::char;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     debug_log,
@@ -87,7 +87,14 @@ impl InstructionExecutor {
             Opcode::Aload_1 => self.execute_aload_1(frame),
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
+            Opcode::Iaload => self.execute_iaload(frame),
+            Opcode::Laload => self.execute_laload(frame),
+            Opcode::Faload => self.execute_faload(frame),
+            Opcode::Daload => self.execute_daload(frame),
             Opcode::Aaload => self.execute_aaload(frame),
+            Opcode::Baload => self.execute_baload(frame),
+            Opcode::Caload => self.execute_caload(frame),
+            Opcode::Saload => self.execute_saload(frame),
             //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
             // as I don't do type validation yet, but in the future,
@@ -117,6 +124,13 @@ impl InstructionExecutor {
             Opcode::Astore_1 => self.execute_istore_1(frame),
             Opcode::Astore_2 => self.execute_istore_2(frame),
             Opcode::Astore_3 => self.execute_istore_3(frame),
+            Opcode::Iastore => self.execute_iastore(frame),
+            Opcode::Lastore => self.execute_lastore(frame),
+            Opcode::Fastore => self.execute_fastore(frame),
+            Opcode::Dastore => self.execute_dastore(frame),
+            Opcode::Bastore => self.execute_bastore(frame),
+            Opcode::Castore => self.execute_castore(frame),
+            Opcode::Sastore => self.execute_sastore(frame),
             Opcode::Pop => self.execute_pop(frame),
             Opcode::Pop2 => self.execute_pop2(frame),
             Opcode::Dup => self.execute_dup(frame),
@@ -214,6 +228,8 @@ impl InstructionExecutor {
             Opcode::Invokestatic => {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
             }
+            Opcode::Newarray => self.execute_newarray(frame, pc),
+            Opcode::Arraylength => self.execute_arraylength(frame),
             Opcode::Goto_w => self.execute_goto_w(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
@@ -595,29 +611,438 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
-    /// Load a reference value from an array and push it to the operand stack
-    fn execute_aaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
-        //TODO: Handle missing index and array ref and StackOverFlowException
-        if let Some(Value::Int(index)) = frame.operand_stack.pop() {
-            if let Some(arrayref) = frame.operand_stack.pop() {
-                match arrayref {
-                    Value::Array(ref arr) => {
-                        if index >= 0 && (index as usize) < arr.len() {
-                            let item = arr[index as usize].clone();
-                            frame.operand_stack.push(item.clone());
-                            debug_log!("  aaload [{}] = {:?}", index, item);
-                        } else {
-                            return Err(format!("Array index out of bounds: {}", index));
-                        }
+    /// Load int from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_iaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("iaload: expected int index, got {:?}", other)),
+            None => return Err("iaload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Int(value) => {
+                        frame.operand_stack.push(Value::Int(*value));
+                        debug_log!("  iaload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
                     }
-                    _ => {
-                        return Err(format!("Expected array reference, got {:?}", arrayref));
-                    }
+                    other => Err(format!("iaload: array element is not int, got {:?}", other)),
                 }
             }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("iaload: expected array reference, got {:?}", other)),
+            None => Err("iaload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load long from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_laload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("laload: expected int index, got {:?}", other)),
+            None => return Err("laload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Long(value) => {
+                        frame.operand_stack.push(Value::Long(*value));
+                        debug_log!("  laload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "laload: array element is not long, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("laload: expected array reference, got {:?}", other)),
+            None => Err("laload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load float from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_faload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("faload: expected int index, got {:?}", other)),
+            None => return Err("faload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Float(value) => {
+                        frame.operand_stack.push(Value::Float(*value));
+                        debug_log!("  faload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "faload: array element is not float, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("faload: expected array reference, got {:?}", other)),
+            None => Err("faload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load double from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_daload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("daload: expected int index, got {:?}", other)),
+            None => return Err("daload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Double(value) => {
+                        frame.operand_stack.push(Value::Double(*value));
+                        debug_log!("  daload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "daload: array element is not double, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("daload: expected array reference, got {:?}", other)),
+            None => Err("daload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_aaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: aaload requires 2 operands".to_string());
         }
 
-        Ok(InstructionCompleted::ContinueMethodExecution)
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("aaload: expected int index, got {:?}", other)),
+            None => return Err("aaload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                // NOTE: I think we should wrap the Reference(String) value
+                // type in a Rc<RefCell<>> too to properly follow the JVM specs
+                match &array[index_usize] {
+                    Value::Reference(value) => {
+                        frame.operand_stack.push(Value::Reference(value.clone()));
+                        debug_log!("  aaload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "aaload: array element is not reference, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("aaload: expected array reference, got {:?}", other)),
+            None => Err("aaload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_baload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: baload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("baload: expected int index, got {:?}", other)),
+            None => return Err("baload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a byte stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  baload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("baload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("baload: expected array reference, got {:?}", other)),
+            None => Err("baload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_caload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: caload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("caload: expected int index, got {:?}", other)),
+            None => return Err("caload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a char stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  caload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("caload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("caload: expected array reference, got {:?}", other)),
+            None => Err("caload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_saload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: saload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("saload: expected int index, got {:?}", other)),
+            None => return Err("saload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a short stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  saload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("saload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("saload: expected array reference, got {:?}", other)),
+            None => Err("saload: failed to pop arrayref".to_string()),
+        }
     }
 
     /// Store an integer value popped from the operand stack
@@ -698,6 +1123,415 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_iastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("iastore: expected int value, got {:?}", other)),
+            None => return Err("iastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("iastore: expected int index, got {:?}", other)),
+            None => return Err("iastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Int(value);
+                debug_log!("  iastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "iastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("iastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_lastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Long(v)) => v,
+            Some(other) => return Err(format!("lastore: expected long value, got {:?}", other)),
+            None => return Err("lastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("lastore: expected int index, got {:?}", other)),
+            None => return Err("lastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Long(value);
+                debug_log!("  lastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "lastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("lastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_fastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Float(v)) => v,
+            Some(other) => return Err(format!("fastore: expected float value, got {:?}", other)),
+            None => return Err("fastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("fastore: expected int index, got {:?}", other)),
+            None => return Err("fastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Float(value);
+                debug_log!("  fastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "fastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("fastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_dastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Double(v)) => v,
+            Some(other) => return Err(format!("dastore: expected double value, got {:?}", other)),
+            None => return Err("dastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("dastore: expected int index, got {:?}", other)),
+            None => return Err("dastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Double(value);
+                debug_log!("  dastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "dastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("dastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_bastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("bastore: expected int value, got {:?}", other)),
+            None => return Err("bastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("bastore: expected int index, got {:?}", other)),
+            None => return Err("bastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as i8) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  bastore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "bastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("bastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_castore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("castore: expected int value, got {:?}", other)),
+            None => return Err("castore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("castore: expected int index, got {:?}", other)),
+            None => return Err("castore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as u16) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  castore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "castore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("castore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_sastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("sastore: expected int value, got {:?}", other)),
+            None => return Err("sastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("sastore: expected int index, got {:?}", other)),
+            None => return Err("sastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as i16) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  sastore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "sastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("sastore: failed to pop arrayref".to_string()),
+        }
     }
 
     /// Pop the top operand stack value
@@ -2563,6 +3397,109 @@ impl InstructionExecutor {
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Create a new primitive array
+    /// of the type corresponding to the next byte's value of the frame's bytecode
+    /// and of the count corresponding to the top value of the frame's operand stack
+    fn execute_newarray(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let atype = frame.bytecode[*pc];
+
+        //TODO: Handle empty stack exceptions
+        if let Some(Value::Int(count)) = frame.operand_stack.pop() {
+            if count < 0 {
+                return Err(format!("NegativeArraySizeException: {}", count));
+            }
+
+            let array = match atype {
+                4 => {
+                    // false = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                5 => {
+                    // '\0' = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                6 => {
+                    vec![Value::Float(0.0); count as usize]
+                }
+                7 => {
+                    vec![Value::Double(0.0); count as usize]
+                }
+                8 => {
+                    // byte stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                9 => {
+                    // short stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                10 => {
+                    vec![Value::Int(0); count as usize]
+                }
+                11 => {
+                    vec![Value::Long(0); count as usize]
+                }
+                _ => return Err(format!("Invalid array type: {}", atype)),
+            };
+
+            // Push array reference onto the stack
+            frame
+                .operand_stack
+                .push(Value::Array(Rc::new(RefCell::new(array))));
+
+            let type_name = match atype {
+                4 => "boolean",
+                5 => "char",
+                6 => "float",
+                7 => "double",
+                8 => "byte",
+                9 => "short",
+                10 => "int",
+                11 => "long",
+                _ => "unknown",
+            };
+
+            debug_log!("  newarray {} [length={}]", type_name, count);
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Calculate the length of some array by popping its arrayref from the frame's operand stack
+    /// and pushing its length back onto the operand stack
+    fn execute_arraylength(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() == 0 {
+            return Err("Stack underflow: arraylength requires 1 operand".to_string());
+        }
+
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                let length = arrayref.borrow().len();
+
+                // arrays can't be larger than i32::MAX in JVM
+                let length_i32 = if length > i32::MAX as usize {
+                    return Err(format!("Array too large: {}", length));
+                } else {
+                    length as i32
+                };
+
+                frame.operand_stack.push(Value::Int(length_i32));
+                debug_log!("  arraylength [length={}]", length);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            //TODO: Handle null references
+            Some(other) => Err(format!(
+                "arraylength: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("arraylength: failed to pop value from stack".to_string()),
+        }
     }
 
     /// Unconditionally branch to a target address specified by a 32-bit signed offset
