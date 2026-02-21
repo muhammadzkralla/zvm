@@ -5,8 +5,8 @@ class Main {
         System.out.println(boolArray.length);
 
         // Create char array
-        char[] charArrray = new char[4];
-        System.out.println(charArrray.length);
+        char[] charArray = new char[4];
+        System.out.println(charArray.length);
 
         // Create float array
         float[] floatArray = new float[3];
@@ -39,7 +39,50 @@ class Main {
         longArray[0] = 123123123L;
         System.out.println(longArray[0]);
 
-        // floatArray[1] = 3.14f;
-        // System.out.println(floatArray[1]); // 3.14
+        floatArray[1] = 3.14f;
+        System.out.println(floatArray[1]);
+
+        doubleArray[1] = 123123123.123123123d;
+        System.out.println(doubleArray[1]);
+
+        boolArray[0] = true;
+        boolArray[1] = false;
+        System.out.println(boolArray[0]);
+        System.out.println(boolArray[1]);
+
+        byteArray[0] = 127;
+        byteArray[1] = -128;
+
+        System.out.println(byteArray[0]);
+        System.out.println(byteArray[1]);
+
+        charArray[0] = 'A'; // 65
+        charArray[1] = 40000; // Valid char (outside signed i16 range!)
+
+        System.out.println((int) charArray[0]); // 65
+        System.out.println((int) charArray[1]); // 40000 (not -25536!)
+        System.out.println((int) charArray[2]); // 0 (65536 & 0xFFFF = 0)
+
+        shortArray[0] = 32767; // Max short value
+        shortArray[1] = -32768; // Min short value
+
+        System.out.println(shortArray[0]); // 32767
+        System.out.println(shortArray[1]); // -32768
+        System.out.println(shortArray[2]); // 0
+
+        // Test short array with values that need truncation
+        short s1 = 100;
+        short s2 = -200;
+        shortArray[0] = s1;
+        shortArray[1] = s2;
+
+        System.out.println(shortArray[0]);
+        System.out.println(shortArray[1]);
+        System.out.println(shortArray[2]);
+
+        // Test reading and writing
+        short temp = shortArray[0];
+        shortArray[2] = temp;
+        System.out.println(shortArray[2]); // 100
     }
 }
