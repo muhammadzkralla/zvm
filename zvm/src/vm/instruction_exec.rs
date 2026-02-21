@@ -94,6 +94,7 @@ impl InstructionExecutor {
             Opcode::Aaload => self.execute_aaload(frame),
             Opcode::Baload => self.execute_baload(frame),
             Opcode::Caload => self.execute_caload(frame),
+            Opcode::Saload => self.execute_saload(frame),
             //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
             // as I don't do type validation yet, but in the future,
@@ -129,6 +130,7 @@ impl InstructionExecutor {
             Opcode::Dastore => self.execute_dastore(frame),
             Opcode::Bastore => self.execute_bastore(frame),
             Opcode::Castore => self.execute_castore(frame),
+            Opcode::Sastore => self.execute_sastore(frame),
             Opcode::Pop => self.execute_pop(frame),
             Opcode::Pop2 => self.execute_pop2(frame),
             Opcode::Dup => self.execute_dup(frame),
@@ -972,7 +974,7 @@ impl InstructionExecutor {
                     ));
                 }
 
-                // Get value from array ( should be a byte stored as int )
+                // Get value from array ( should be a char stored as int )
                 match &array[index_usize] {
                     Value::Int(byte_val) => {
                         frame.operand_stack.push(Value::Int(*byte_val));
@@ -987,6 +989,59 @@ impl InstructionExecutor {
             }
             Some(other) => Err(format!("caload: expected array reference, got {:?}", other)),
             None => Err("caload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_saload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: saload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("saload: expected int index, got {:?}", other)),
+            None => return Err("saload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a short stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  saload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("saload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("saload: expected array reference, got {:?}", other)),
+            None => Err("saload: failed to pop arrayref".to_string()),
         }
     }
 
@@ -1417,6 +1472,65 @@ impl InstructionExecutor {
                 other
             )),
             None => Err("castore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_sastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("sastore: expected int value, got {:?}", other)),
+            None => return Err("sastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("sastore: expected int index, got {:?}", other)),
+            None => return Err("sastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as i16) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  sastore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "sastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("sastore: failed to pop arrayref".to_string()),
         }
     }
 

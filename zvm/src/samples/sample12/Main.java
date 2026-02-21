@@ -62,5 +62,27 @@ class Main {
         System.out.println((int) charArray[0]); // 65
         System.out.println((int) charArray[1]); // 40000 (not -25536!)
         System.out.println((int) charArray[2]); // 0 (65536 & 0xFFFF = 0)
+
+        shortArray[0] = 32767; // Max short value
+        shortArray[1] = -32768; // Min short value
+
+        System.out.println(shortArray[0]); // 32767
+        System.out.println(shortArray[1]); // -32768
+        System.out.println(shortArray[2]); // 0
+
+        // Test short array with values that need truncation
+        short s1 = 100;
+        short s2 = -200;
+        shortArray[0] = s1;
+        shortArray[1] = s2;
+
+        System.out.println(shortArray[0]);
+        System.out.println(shortArray[1]);
+        System.out.println(shortArray[2]);
+
+        // Test reading and writing
+        short temp = shortArray[0];
+        shortArray[2] = temp;
+        System.out.println(shortArray[2]); // 100
     }
 }
