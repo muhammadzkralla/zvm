@@ -164,4 +164,34 @@ impl ClassFile {
             None
         }
     }
+
+    /// Retrieves a long constant from the constant pool.
+    pub fn get_long(&self, index: u16) -> Option<i64> {
+        if let Some(CpInfo::Long {
+            high_bytes,
+            low_bytes,
+        }) = self.constant_pool.get(index as usize)
+        {
+            // AS SPECIFIED BY THE SPECS: ((long) high_bytes << 32) + low_bytes
+            let long_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
+            Some(long_bits as i64)
+        } else {
+            None
+        }
+    }
+
+    /// Retrieves a double constant from the constant pool.
+    pub fn get_double(&self, index: u16) -> Option<f64> {
+        if let Some(CpInfo::Double {
+            high_bytes,
+            low_bytes,
+        }) = self.constant_pool.get(index as usize)
+        {
+            // AS SPECIFIED BY THE SPECS: ((long) high_bytes << 32) + low_bytes
+            let double_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
+            Some(f64::from_bits(double_bits))
+        } else {
+            None
+        }
+    }
 }
