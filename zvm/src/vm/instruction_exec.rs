@@ -41,6 +41,7 @@ impl InstructionExecutor {
     ) -> Result<InstructionCompleted, String> {
         match opcode {
             Opcode::Iconstm1 => self.execute_iconst_m1(frame),
+            Opcode::Aconst_null => self.execute_aconst_null(frame),
             Opcode::Iconst0 => self.execute_iconst_0(frame),
             Opcode::Iconst1 => self.execute_iconst_1(frame),
             Opcode::Iconst2 => self.execute_iconst_2(frame),
@@ -57,6 +58,7 @@ impl InstructionExecutor {
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
+            Opcode::Ldc_w => self.execute_ldc_w(frame, class_file, pc),
             Opcode::Ldc2_w => self.execute_ldc2_w(frame, class_file, pc),
             //TODO: For now, Iload<n>, Lload<n>, Fload<n>, and Dload<n>
             // instructions can be handled by the same function
@@ -245,6 +247,12 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    fn execute_aconst_null(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Null);
+        debug_log!("  aconst_null");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
     /// Push integer constant 0 onto the operand stack
     fn execute_iconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(0));
@@ -372,7 +380,7 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
-    /// Load a String value from the constant pool and push it to the operand stack
+    /// Load a String/Integer/Float value from the constant pool and push it to the operand stack
     fn execute_ldc(
         &self,
         frame: &mut Frame,
@@ -416,6 +424,51 @@ impl InstructionExecutor {
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
+    /// Load a String/Integer/Float value from the constant pool ( wide-extended )
+    /// and push it to the operand stack
+    fn execute_ldc_w(
+        &self,
+        frame: &mut Frame,
+        class_file: &ClassFile,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let index_high = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let index_low = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
+        let index = ((index_high << 8) | index_low) as usize;
+
+        if let Some(cp_entry) = class_file.constant_pool.get(index) {
+            match cp_entry {
+                CpInfo::Integer { .. } => {
+                    if let Some(int_val) = class_file.get_integer(index as u16) {
+                        frame.operand_stack.push(Value::Int(int_val));
+                        debug_log!("  ldc_w {}", int_val);
+                    }
+                }
+                CpInfo::Float { .. } => {
+                    if let Some(float_val) = class_file.get_float(index as u16) {
+                        frame.operand_stack.push(Value::Float(float_val));
+                        debug_log!("  ldc_w {}f", float_val);
+                    }
+                }
+                CpInfo::String { .. } => {
+                    if let Some(string_val) = class_file.get_string(index as u16) {
+                        frame
+                            .operand_stack
+                            .push(Value::Reference(string_val.clone()));
+                        debug_log!("  ldc_w \"{}\"", string_val);
+                    }
+                }
+                // Handle Class, MethodHandle, etc.
+                _ => return Err(format!("ldc_w cannot load Category 2 or invalid types")),
+            }
+        }
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
     /// Load a long or a double value from the constant pool and push it to the operand stack
     fn execute_ldc2_w(
         &self,
@@ -433,28 +486,17 @@ impl InstructionExecutor {
 
         if let Some(cp_entry) = class_file.constant_pool.get(index as usize) {
             match cp_entry {
-                CpInfo::Long {
-                    high_bytes,
-                    low_bytes,
-                } => {
-                    // AS SPECIFIED BY THE SPECS:
-                    // ((long) high_bytes << 32) + low_bytes
-                    let long_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
-                    let value = Value::Long(long_bits as i64);
-                    frame.operand_stack.push(value.clone());
-                    debug_log!("  ldc2_w {:?}", value);
+                CpInfo::Long { .. } => {
+                    if let Some(long_val) = class_file.get_long(index as u16) {
+                        frame.operand_stack.push(Value::Long(long_val));
+                        debug_log!("  ldc2_w {}L", long_val);
+                    }
                 }
-                CpInfo::Double {
-                    high_bytes,
-                    low_bytes,
-                } => {
-                    // AS SPECIFIED BY THE SPECS:
-                    // ((long) high_bytes << 32) + low_bytes
-                    // Then interpret the bits as a double
-                    let double_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
-                    let value = Value::Double(f64::from_bits(double_bits));
-                    frame.operand_stack.push(value.clone());
-                    debug_log!("  ldc2_w {:?}", value);
+                CpInfo::Double { .. } => {
+                    if let Some(double_val) = class_file.get_double(index as u16) {
+                        frame.operand_stack.push(Value::Double(double_val));
+                        debug_log!("  ldc2_w {}d", double_val);
+                    }
                 }
                 _ => {
                     return Err(format!(
