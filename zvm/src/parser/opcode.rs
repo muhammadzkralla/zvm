@@ -3,6 +3,7 @@
 #[allow(non_camel_case_types)]
 pub enum Opcode {
     Nop = 0x00,           // 0
+    Aconst_null = 0x01,   // 1
     Iconstm1 = 0x02,      // 2
     Iconst0 = 0x03,       // 3
     Iconst1 = 0x04,       // 4
@@ -20,6 +21,7 @@ pub enum Opcode {
     Bipush = 0x10,        // 16
     Sipush = 0x11,        // 17
     Ldc = 0x12,           // 18
+    Ldc_w = 0x13,         // 19
     Ldc2_w = 0x14,        // 20
     Iload = 0x15,         // 21
     Lload = 0x16,         // 22
@@ -185,6 +187,7 @@ impl From<u8> for Opcode {
     fn from(byte: u8) -> Self {
         match byte {
             0x00 => Opcode::Nop,
+            0x01 => Opcode::Aconst_null,
             0x02 => Opcode::Iconstm1,
             0x03 => Opcode::Iconst0,
             0x04 => Opcode::Iconst1,
@@ -202,6 +205,7 @@ impl From<u8> for Opcode {
             0x10 => Opcode::Bipush,
             0x11 => Opcode::Sipush,
             0x12 => Opcode::Ldc,
+            0x13 => Opcode::Ldc_w,
             0x14 => Opcode::Ldc2_w,
             0x15 => Opcode::Iload,
             0x16 => Opcode::Lload,

@@ -7,5 +7,6 @@ public class App {
         GenerateHelloByteBuddy.generate();
         GenerateSwap.generate();
         DupBytecodeGenerator.generateDupTestClass();
+        GenerateLdcw.generate();
     }
 }
