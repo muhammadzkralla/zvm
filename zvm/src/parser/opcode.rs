@@ -167,6 +167,7 @@ pub enum Opcode {
     If_icmpgt = 0xA3,     // 163
     If_icmple = 0xA4,     // 164
     Goto = 0xA7,          // 167
+    Tableswitch = 0xAA,   // 170
     Ireturn = 0xAC,       // 172
     Lreturn = 0xAD,       // 173
     Freturn = 0xAE,       // 174
@@ -351,6 +352,7 @@ impl From<u8> for Opcode {
             0xA3 => Opcode::If_icmpgt,
             0xA4 => Opcode::If_icmple,
             0xA7 => Opcode::Goto,
+            0xAA => Opcode::Tableswitch,
             0xAC => Opcode::Ireturn,
             0xAD => Opcode::Lreturn,
             0xAE => Opcode::Freturn,

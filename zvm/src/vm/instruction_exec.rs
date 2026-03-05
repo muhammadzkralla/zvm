@@ -213,6 +213,7 @@ impl InstructionExecutor {
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
             Opcode::Goto => self.execute_goto(frame, pc),
+            Opcode::Tableswitch => self.execute_tableswitch(frame, pc),
             Opcode::Ireturn => self.execute_ireturn(frame),
             Opcode::Lreturn => self.execute_lreturn(frame),
             Opcode::Freturn => self.execute_freturn(frame),
@@ -3143,6 +3144,87 @@ impl InstructionExecutor {
 
         debug_log!("  goto {} (target: {})", offset, target);
         Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// This instruction is used for multi-way conditional branching.
+    /// It checks an integer value from the operand stack against
+    /// a range of case values and branches to a specific instruction address based on the match.
+    fn execute_tableswitch(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        // Save the initial address as we will need it later
+        let tableswitch_start = *pc;
+        *pc += 1;
+
+        // keep skipping padding bytes until we reach
+        // an address that is aligned to a 4-byte boundary
+        while *pc % 4 != 0 {
+            *pc += 1;
+        }
+
+        // Read default, low, and high bytes as signed 32-bit values
+        let default_offset = self.read_i32(&frame.bytecode, pc);
+        let low = self.read_i32(&frame.bytecode, pc);
+        let high = self.read_i32(&frame.bytecode, pc);
+
+        // Read jump offsets as signed 32-bit values
+        let number_of_offsets = (high - low + 1) as usize;
+        let mut jump_offsets = Vec::with_capacity(number_of_offsets);
+
+        for _ in 0..number_of_offsets {
+            jump_offsets.push(self.read_i32(&frame.bytecode, pc));
+        }
+
+        // The index is the parameter of the switch case
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("tableswitch: expected int index, got {:?}", other)),
+            None => return Err("tableswitch: failed to pop index".to_string()),
+        };
+
+        // If the index is out of bound, fallback to default case
+        // Otherwise, go to the case with the specified index
+        let target_offset: i32;
+        if index >= low && index <= high {
+            let offset_index = (index - low) as usize;
+            target_offset = jump_offsets[offset_index];
+        } else {
+            target_offset = default_offset;
+        }
+
+        let target = (tableswitch_start as isize + target_offset as isize) as usize;
+        *pc = target.wrapping_sub(1);
+
+        debug_log!(
+            "  tableswitch index={} low={} high={} default={} target={}",
+            index,
+            low,
+            high,
+            default_offset,
+            target
+        );
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Helper function to read bytes from a frame's bytecode
+    /// as signed 32-bit values and return them after construction
+    /// by a formula stated by the specs in the `tableswitch` opcode description
+    fn read_i32(&self, bytecode: &[u8], pc: &mut usize) -> i32 {
+        let b1 = bytecode[*pc] as i32;
+        *pc += 1;
+        let b2 = bytecode[*pc] as i32;
+        *pc += 1;
+        let b3 = bytecode[*pc] as i32;
+        *pc += 1;
+        let b4 = bytecode[*pc] as i32;
+        *pc += 1;
+
+        // AS SPECIFIED BY THE SPECS:
+        //(byte1 << 24) | (byte2 << 16) | (byte3 << 8) | byte4.
+        ((b1 << 24) | (b2 << 16) | (b3 << 8) | b4) as i32
     }
 
     /// Pop an integer value from the current stack's operand stack and return it to the
