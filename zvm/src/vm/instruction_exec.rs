@@ -3212,8 +3212,8 @@ impl InstructionExecutor {
     }
 
     /// This instruction is used for multi-way conditional branching.
-    /// It checks an integer value from the operand stack against a range overflows
-    /// case values and branches to a specific instruction address based on the match.
+    /// It checks an integer value from the operand stack against a set of
+    /// case values (key-offset pairs) and branches to a specific instruction address based on the match.
     fn execute_lookupswitch(
         &self,
         frame: &mut Frame,

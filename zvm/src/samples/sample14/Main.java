@@ -6,7 +6,7 @@ public class Main {
         tableswitch(3);
         tableswitch(10);
 
-        lookupswitch(000);
+        lookupswitch(0);
         lookupswitch(100);
         lookupswitch(200);
         lookupswitch(300);
