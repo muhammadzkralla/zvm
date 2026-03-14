@@ -214,6 +214,7 @@ impl InstructionExecutor {
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
             Opcode::Goto => self.execute_goto(frame, pc),
             Opcode::Tableswitch => self.execute_tableswitch(frame, pc),
+            Opcode::Lookupswitch => self.execute_lookupswitch(frame, pc),
             Opcode::Ireturn => self.execute_ireturn(frame),
             Opcode::Lreturn => self.execute_lreturn(frame),
             Opcode::Freturn => self.execute_freturn(frame),
@@ -3194,6 +3195,7 @@ impl InstructionExecutor {
             target_offset = default_offset;
         }
 
+        // Move the program count to calculated target_offset address
         let target = (tableswitch_start as isize + target_offset as isize) as usize;
         *pc = target.wrapping_sub(1);
 
@@ -3206,6 +3208,69 @@ impl InstructionExecutor {
             target
         );
 
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// This instruction is used for multi-way conditional branching.
+    /// It checks an integer value from the operand stack against a range overflows
+    /// case values and branches to a specific instruction address based on the match.
+    fn execute_lookupswitch(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        // Save the initial address as we will need it later
+        let lookupswitch_start = *pc;
+        *pc += 1;
+
+        // keep skipping padding bytes until we reach
+        // an address that is aligned to a 4-byte boundary
+        while *pc % 4 != 0 {
+            *pc += 1;
+        }
+
+        // Read default bytes as signed 32-bit values
+        let default_offset = self.read_i32(&frame.bytecode, pc);
+
+        // Read jump offsets as signed 32-bit values
+        let npairs = self.read_i32(&frame.bytecode, pc);
+        let mut pairs: Vec<(i32, i32)> = Vec::with_capacity(npairs as usize);
+        for _ in 0..npairs {
+            let key = self.read_i32(&frame.bytecode, pc);
+            let offset = self.read_i32(&frame.bytecode, pc);
+            pairs.push((key, offset));
+        }
+
+        // The index is the parameter of the switch case
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => {
+                return Err(format!("lookupswitch: expected int index, got {:?}", other));
+            }
+            None => return Err("lookupswitch: failed to pop index".to_string()),
+        };
+
+        // If the index is out of bound, fallback to default case
+        // Otherwise, go to the offset with the specified key
+        let mut target_offset = default_offset;
+        for (key, offset) in pairs.iter() {
+            if *key == index {
+                target_offset = *offset;
+                break;
+            }
+        }
+
+        // Move the program count to calculated target_offset address
+        let target = (lookupswitch_start as isize + target_offset as isize) as usize;
+        *pc = target.wrapping_sub(1);
+
+        debug_log!(
+            "  lookupswitch index={} npairs={} default={} target={}",
+            index,
+            npairs,
+            default_offset,
+            target
+        );
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
