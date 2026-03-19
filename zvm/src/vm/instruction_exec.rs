@@ -2787,12 +2787,12 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                 // not the current PC
                 *pc -= 3;
-                *pc += offset;
+                *pc = (*pc as isize + offset as isize) as usize;
             } else {
                 *pc += 2;
             }
@@ -2815,12 +2815,12 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                 // not the current PC
                 *pc -= 3;
-                *pc += offset;
+                *pc = (*pc as isize + offset as isize) as usize;
             } else {
                 *pc += 2;
             }
@@ -2842,12 +2842,12 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                 // not the current PC
                 *pc -= 3;
-                *pc += offset;
+                *pc = (*pc as isize + offset as isize) as usize;
             } else {
                 *pc += 2;
             }
@@ -2870,12 +2870,12 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                 // not the current PC
                 *pc -= 3;
-                *pc += offset;
+                *pc = (*pc as isize + offset as isize) as usize;
             } else {
                 *pc += 2;
             }
@@ -2898,12 +2898,12 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                 // not the current PC
                 *pc -= 3;
-                *pc += offset;
+                *pc = (*pc as isize + offset as isize) as usize;
             } else {
                 *pc += 2;
             }
@@ -2926,12 +2926,12 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                 // not the current PC
                 *pc -= 3;
-                *pc += offset;
+                *pc = (*pc as isize + offset as isize) as usize;
             } else {
                 *pc += 2;
             }
@@ -2955,12 +2955,12 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
                     *pc -= 3;
-                    *pc += offset;
+                    *pc = (*pc as isize + offset as isize) as usize;
                 } else {
                     *pc += 2;
                 }
@@ -2985,12 +2985,12 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
                     *pc -= 3;
-                    *pc += offset;
+                    *pc = (*pc as isize + offset as isize) as usize;
                 } else {
                     *pc += 2;
                 }
@@ -3016,12 +3016,12 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
                     *pc -= 3;
-                    *pc += offset;
+                    *pc = (*pc as isize + offset as isize) as usize;
                 } else {
                     *pc += 2;
                 }
@@ -3047,12 +3047,12 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
                     *pc -= 3;
-                    *pc += offset;
+                    *pc = (*pc as isize + offset as isize) as usize;
                 } else {
                     *pc += 2;
                 }
@@ -3077,12 +3077,12 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
                     *pc -= 3;
-                    *pc += offset;
+                    *pc = (*pc as isize + offset as isize) as usize;
                 } else {
                     *pc += 2;
                 }
@@ -3108,12 +3108,12 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
                     *pc -= 3;
-                    *pc += offset;
+                    *pc = (*pc as isize + offset as isize) as usize;
                 } else {
                     *pc += 2;
                 }
