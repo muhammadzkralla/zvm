@@ -235,6 +235,8 @@ impl InstructionExecutor {
             Opcode::Newarray => self.execute_newarray(frame, pc),
             Opcode::Arraylength => self.execute_arraylength(frame),
             Opcode::Goto_w => self.execute_goto_w(frame, pc),
+            Opcode::Ifnull => self.execute_ifnull(frame, pc),
+            Opcode::Ifnonnull => self.execute_ifnonnull(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
                 Ok(InstructionCompleted::ContinueMethodExecution)
@@ -3720,6 +3722,58 @@ impl InstructionExecutor {
         *pc = target.wrapping_sub(1);
 
         debug_log!("  goto_w {} (target: {})", offset, target);
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a reference from the operand stack and check if it's null
+    fn execute_ifnull(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Null) = frame.operand_stack.pop() {
+            *pc += 1;
+            let index_high = frame.bytecode[*pc] as u16;
+            *pc += 1;
+            let index_low = frame.bytecode[*pc] as u16;
+
+            // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+            let offset = ((index_high << 8) | index_low) as i16;
+
+            // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+            // not the current PC
+            *pc -= 3;
+            *pc = (*pc as isize + offset as isize) as usize;
+        } else {
+            *pc += 2;
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a reference from the operand stack and check if it's not null
+    fn execute_ifnonnull(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Null) = frame.operand_stack.pop() {
+            *pc += 2;
+        } else {
+            *pc += 1;
+            let index_high = frame.bytecode[*pc] as u16;
+            *pc += 1;
+            let index_low = frame.bytecode[*pc] as u16;
+
+            // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+            let offset = ((index_high << 8) | index_low) as i16;
+
+            // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+            // not the current PC
+            *pc -= 3;
+            *pc = (*pc as isize + offset as isize) as usize;
+        }
+
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
