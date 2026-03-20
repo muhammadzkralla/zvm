@@ -27,6 +27,7 @@ pub enum Opcode {
     Lload = 0x16,         // 22
     Fload = 0x17,         // 23
     Dload = 0x18,         // 24
+    Aload = 0x19,         // 25
     Iload0 = 0x1A,        // 26
     Iload1 = 0x1B,        // 27
     Iload2 = 0x1C,        // 28
@@ -43,7 +44,6 @@ pub enum Opcode {
     Dload1 = 0x27,        // 39
     Dload2 = 0x28,        // 40
     Dload3 = 0x29,        // 41
-    Aload = 0x19,         // 25
     Aload_0 = 0x2A,       // 42
     Aload_1 = 0x2B,       // 43
     Aload_2 = 0x2C,       // 44
@@ -182,6 +182,8 @@ pub enum Opcode {
     Invokestatic = 0xB8,  // 184
     Newarray = 0xBC,      // 188
     Arraylength = 0xBE,   // 190
+    Ifnull = 0xC6,        // 198
+    Ifnonnull = 0xC7,     // 199
     Goto_w = 0xC8,        // 200
 }
 
@@ -368,6 +370,8 @@ impl From<u8> for Opcode {
             0xB8 => Opcode::Invokestatic,
             0xBC => Opcode::Newarray,
             0xBE => Opcode::Arraylength,
+            0xC6 => Opcode::Ifnull,
+            0xC7 => Opcode::Ifnonnull,
             0xC8 => Opcode::Goto_w,
             _ => panic!("Unknown opcode: 0x{:02X}", byte),
         }

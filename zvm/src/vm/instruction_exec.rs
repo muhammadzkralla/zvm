@@ -235,6 +235,8 @@ impl InstructionExecutor {
             Opcode::Newarray => self.execute_newarray(frame, pc),
             Opcode::Arraylength => self.execute_arraylength(frame),
             Opcode::Goto_w => self.execute_goto_w(frame, pc),
+            Opcode::Ifnull => self.execute_ifnull(frame, pc),
+            Opcode::Ifnonnull => self.execute_ifnonnull(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
                 Ok(InstructionCompleted::ContinueMethodExecution)
@@ -2785,12 +2787,13 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2813,12 +2816,13 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2840,12 +2844,13 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2868,12 +2873,13 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2896,12 +2902,13 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2924,12 +2931,13 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2953,12 +2961,13 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -2983,12 +2992,13 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3014,12 +3024,13 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3045,12 +3056,13 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3075,12 +3087,13 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3106,12 +3119,13 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3720,6 +3734,86 @@ impl InstructionExecutor {
         *pc = target.wrapping_sub(1);
 
         debug_log!("  goto_w {} (target: {})", offset, target);
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a reference from the operand stack and check if it's null
+    fn execute_ifnull(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        match frame.operand_stack.pop() {
+            Some(Value::Null) => {
+                *pc += 1;
+                let index_high = frame.bytecode[*pc] as u16;
+                *pc += 1;
+                let index_low = frame.bytecode[*pc] as u16;
+
+                // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                let offset = ((index_high << 8) | index_low) as i16;
+
+                // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                // not the current PC
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
+            }
+            Some(Value::Reference(_)) | Some(Value::Array(_)) => {
+                // Value is a non-null reference, don't branch
+                *pc += 2;
+            }
+            Some(other) => {
+                return Err(format!(
+                    "ifnull: value must be a reference, got {:?}",
+                    other
+                ));
+            }
+            None => {
+                return Err("ifnull: operand stack underflow".to_string());
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a reference from the operand stack and check if it's not null
+    fn execute_ifnonnull(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        match frame.operand_stack.pop() {
+            Some(Value::Null) => {
+                // Value is null, don't branch
+                *pc += 2;
+            }
+            Some(Value::Reference(_)) | Some(Value::Array(_)) => {
+                *pc += 1;
+                let index_high = frame.bytecode[*pc] as u16;
+                *pc += 1;
+                let index_low = frame.bytecode[*pc] as u16;
+
+                // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                let offset = ((index_high << 8) | index_low) as i16;
+
+                // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                // not the current PC
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
+            }
+            Some(other) => {
+                return Err(format!(
+                    "ifnonnull: value must be a reference, got {:?}",
+                    other
+                ));
+            }
+            None => {
+                return Err("ifnonnull: operand stack underflow".to_string());
+            }
+        }
+
         Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
