@@ -3743,22 +3743,35 @@ impl InstructionExecutor {
         frame: &mut Frame,
         pc: &mut usize,
     ) -> Result<InstructionCompleted, String> {
-        if let Some(Value::Null) = frame.operand_stack.pop() {
-            *pc += 1;
-            let index_high = frame.bytecode[*pc] as u16;
-            *pc += 1;
-            let index_low = frame.bytecode[*pc] as u16;
+        match frame.operand_stack.pop() {
+            Some(Value::Null) => {
+                *pc += 1;
+                let index_high = frame.bytecode[*pc] as u16;
+                *pc += 1;
+                let index_low = frame.bytecode[*pc] as u16;
 
-            // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-            let offset = ((index_high << 8) | index_low) as i16;
+                // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                let offset = ((index_high << 8) | index_low) as i16;
 
-            // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-            // not the current PC
-            let branch_base = (*pc as isize) - 3;
-            let target = (branch_base + offset as isize) as usize;
-            *pc = target.wrapping_sub(1);
-        } else {
-            *pc += 2;
+                // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                // not the current PC
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
+            }
+            Some(Value::Reference(_)) | Some(Value::Array(_)) => {
+                // Value is a non-null reference, don't branch
+                *pc += 2;
+            }
+            Some(other) => {
+                return Err(format!(
+                    "ifnull: value must be a reference, got {:?}",
+                    other
+                ));
+            }
+            None => {
+                return Err("ifnull: operand stack underflow".to_string());
+            }
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
@@ -3770,22 +3783,35 @@ impl InstructionExecutor {
         frame: &mut Frame,
         pc: &mut usize,
     ) -> Result<InstructionCompleted, String> {
-        if let Some(Value::Null) = frame.operand_stack.pop() {
-            *pc += 2;
-        } else {
-            *pc += 1;
-            let index_high = frame.bytecode[*pc] as u16;
-            *pc += 1;
-            let index_low = frame.bytecode[*pc] as u16;
+        match frame.operand_stack.pop() {
+            Some(Value::Null) => {
+                // Value is null, don't branch
+                *pc += 2;
+            }
+            Some(Value::Reference(_)) | Some(Value::Array(_)) => {
+                *pc += 1;
+                let index_high = frame.bytecode[*pc] as u16;
+                *pc += 1;
+                let index_low = frame.bytecode[*pc] as u16;
 
-            // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-            let offset = ((index_high << 8) | index_low) as i16;
+                // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                let offset = ((index_high << 8) | index_low) as i16;
 
-            // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-            // not the current PC
-            let branch_base = (*pc as isize) - 3;
-            let target = (branch_base + offset as isize) as usize;
-            *pc = target.wrapping_sub(1);
+                // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                // not the current PC
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
+            }
+            Some(other) => {
+                return Err(format!(
+                    "ifnonnull: value must be a reference, got {:?}",
+                    other
+                ));
+            }
+            None => {
+                return Err("ifnonnull: operand stack underflow".to_string());
+            }
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
