@@ -2790,9 +2790,10 @@ impl InstructionExecutor {
                 let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc = (*pc as isize + offset as isize) as usize;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2818,9 +2819,10 @@ impl InstructionExecutor {
                 let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc = (*pc as isize + offset as isize) as usize;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2845,9 +2847,10 @@ impl InstructionExecutor {
                 let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc = (*pc as isize + offset as isize) as usize;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2873,9 +2876,10 @@ impl InstructionExecutor {
                 let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc = (*pc as isize + offset as isize) as usize;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2901,9 +2905,10 @@ impl InstructionExecutor {
                 let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc = (*pc as isize + offset as isize) as usize;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2929,9 +2934,10 @@ impl InstructionExecutor {
                 let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc = (*pc as isize + offset as isize) as usize;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
@@ -2959,8 +2965,9 @@ impl InstructionExecutor {
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc = (*pc as isize + offset as isize) as usize;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -2989,8 +2996,9 @@ impl InstructionExecutor {
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc = (*pc as isize + offset as isize) as usize;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3020,8 +3028,9 @@ impl InstructionExecutor {
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc = (*pc as isize + offset as isize) as usize;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3051,8 +3060,9 @@ impl InstructionExecutor {
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc = (*pc as isize + offset as isize) as usize;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3081,8 +3091,9 @@ impl InstructionExecutor {
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc = (*pc as isize + offset as isize) as usize;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3112,8 +3123,9 @@ impl InstructionExecutor {
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc = (*pc as isize + offset as isize) as usize;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
@@ -3742,8 +3754,9 @@ impl InstructionExecutor {
 
             // NOTE: The offset is relative to the address of the if<cond> opcode itself,
             // not the current PC
-            *pc -= 3;
-            *pc = (*pc as isize + offset as isize) as usize;
+            let branch_base = (*pc as isize) - 3;
+            let target = (branch_base + offset as isize) as usize;
+            *pc = target.wrapping_sub(1);
         } else {
             *pc += 2;
         }
@@ -3770,8 +3783,9 @@ impl InstructionExecutor {
 
             // NOTE: The offset is relative to the address of the if<cond> opcode itself,
             // not the current PC
-            *pc -= 3;
-            *pc = (*pc as isize + offset as isize) as usize;
+            let branch_base = (*pc as isize) - 3;
+            let target = (branch_base + offset as isize) as usize;
+            *pc = target.wrapping_sub(1);
         }
 
         Ok(InstructionCompleted::ContinueMethodExecution)
