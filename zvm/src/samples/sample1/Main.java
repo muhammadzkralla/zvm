@@ -1,11 +1,11 @@
 public class Main {
-    private static void foo(int num1, int num2) {
+    public static void foo(int num1, int num2) {
         System.out.println(num1);
         System.out.println(num2);
         bar();
     }
 
-    private static void bar() {
+    public static void bar() {
         System.out.println("Wait... WTF IT WORKED????? jhafkjhlskjhakjg");
     }
 
