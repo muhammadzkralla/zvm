@@ -2,8 +2,22 @@ class Main {
     static int a = -1;
     static int x = 6;
     static int y = 5;
+    static String nullStr = null;
+    static String nonNullStr = "hello";
 
     public static void main(String[] args) {
+        System.out.println("Testing null check instructions:");
+
+        // IFNULL - branch if null
+        if (nullStr == null) {
+            System.out.println("nullStr is null");
+        }
+
+        // IFNONNULL - branch if not null
+        if (nonNullStr != null) {
+            System.out.println("nonNullStr is not null");
+        }
+
         System.out.println("Testing multiple conditions:");
 
         // IFEQ

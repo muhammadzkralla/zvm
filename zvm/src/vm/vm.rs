@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     debug_log,
     parser::class_file::ClassFile,
@@ -93,11 +95,11 @@ impl Vm {
         let mut array_values = Vec::new();
 
         for arg in args.iter() {
-            let value = Value::Object(arg.clone());
+            let value = Value::Reference(arg.clone());
             array_values.push(value);
         }
 
-        let array = Value::Array(array_values);
+        let array = Value::Array(Rc::new(RefCell::new(array_values)));
         env_args.push(array);
 
         self.call_stack

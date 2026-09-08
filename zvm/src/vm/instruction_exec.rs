@@ -1,4 +1,4 @@
-use std::char;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     debug_log,
@@ -7,6 +7,23 @@ use crate::{
 };
 
 pub struct InstructionExecutor;
+
+/// NOTE: This enum and instruction completion logic is mainly inspired by Andrea Bergia's
+/// Virtual Machine Project. You can find it at:
+/// https://github.com/andreabergia/rjvm
+/// NOTE: I only took this enum from them, all instructions execution functions and logic
+/// are implemented from scratch by me.
+///
+/// Possible execution result of an instruction
+pub enum InstructionCompleted {
+    /// Indicates that the instruction executed was one of the return family. The caller
+    /// should stop the method execution and return the value.
+    ReturnFromMethod(Option<Value>),
+
+    /// Indicates that the instruction was not a return, and thus the execution should
+    /// resume from the instruction at the program counter.
+    ContinueMethodExecution,
+}
 
 impl InstructionExecutor {
     pub fn new() -> Self {
@@ -21,18 +38,27 @@ impl InstructionExecutor {
         runtime_data_area: &mut RuntimeDataArea,
         call_stack: &mut CallStack,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         match opcode {
             Opcode::Iconstm1 => self.execute_iconst_m1(frame),
+            Opcode::Aconst_null => self.execute_aconst_null(frame),
             Opcode::Iconst0 => self.execute_iconst_0(frame),
             Opcode::Iconst1 => self.execute_iconst_1(frame),
             Opcode::Iconst2 => self.execute_iconst_2(frame),
             Opcode::Iconst3 => self.execute_iconst_3(frame),
             Opcode::Iconst4 => self.execute_iconst_4(frame),
             Opcode::Iconst5 => self.execute_iconst_5(frame),
+            Opcode::Lconst0 => self.execute_lconst_0(frame),
+            Opcode::Lconst1 => self.execute_lconst_1(frame),
+            Opcode::Fconst0 => self.execute_fconst_0(frame),
+            Opcode::Fconst1 => self.execute_fconst_1(frame),
+            Opcode::Fconst2 => self.execute_fconst_2(frame),
+            Opcode::Dconst0 => self.execute_dconst_0(frame),
+            Opcode::Dconst1 => self.execute_dconst_1(frame),
             Opcode::Bipush => self.execute_bipush(frame, pc),
             Opcode::Sipush => self.execute_sipush(frame, pc),
             Opcode::Ldc => self.execute_ldc(frame, class_file, pc),
+            Opcode::Ldc_w => self.execute_ldc_w(frame, class_file, pc),
             Opcode::Ldc2_w => self.execute_ldc2_w(frame, class_file, pc),
             //TODO: For now, Iload<n>, Lload<n>, Fload<n>, and Dload<n>
             // instructions can be handled by the same function
@@ -63,7 +89,14 @@ impl InstructionExecutor {
             Opcode::Aload_1 => self.execute_aload_1(frame),
             Opcode::Aload_2 => self.execute_aload_2(frame),
             Opcode::Aload_3 => self.execute_aload_3(frame),
+            Opcode::Iaload => self.execute_iaload(frame),
+            Opcode::Laload => self.execute_laload(frame),
+            Opcode::Faload => self.execute_faload(frame),
+            Opcode::Daload => self.execute_daload(frame),
             Opcode::Aaload => self.execute_aaload(frame),
+            Opcode::Baload => self.execute_baload(frame),
+            Opcode::Caload => self.execute_caload(frame),
+            Opcode::Saload => self.execute_saload(frame),
             //TODO: For now, Istore_<n>, Lstore_<n>, Fstore_<n>, and Dstore_<n>
             // instructions can be handled by the same function
             // as I don't do type validation yet, but in the future,
@@ -72,6 +105,7 @@ impl InstructionExecutor {
             Opcode::Lstore => self.execute_istore(frame, pc),
             Opcode::Fstore => self.execute_istore(frame, pc),
             Opcode::Dstore => self.execute_istore(frame, pc),
+            Opcode::Astore => self.execute_istore(frame, pc),
             Opcode::Istore_0 => self.execute_istore_0(frame),
             Opcode::Istore_1 => self.execute_istore_1(frame),
             Opcode::Istore_2 => self.execute_istore_2(frame),
@@ -88,6 +122,26 @@ impl InstructionExecutor {
             Opcode::Dstore_1 => self.execute_istore_1(frame),
             Opcode::Dstore_2 => self.execute_istore_2(frame),
             Opcode::Dstore_3 => self.execute_istore_3(frame),
+            Opcode::Astore_0 => self.execute_istore_0(frame),
+            Opcode::Astore_1 => self.execute_istore_1(frame),
+            Opcode::Astore_2 => self.execute_istore_2(frame),
+            Opcode::Astore_3 => self.execute_istore_3(frame),
+            Opcode::Iastore => self.execute_iastore(frame),
+            Opcode::Lastore => self.execute_lastore(frame),
+            Opcode::Fastore => self.execute_fastore(frame),
+            Opcode::Dastore => self.execute_dastore(frame),
+            Opcode::Bastore => self.execute_bastore(frame),
+            Opcode::Castore => self.execute_castore(frame),
+            Opcode::Sastore => self.execute_sastore(frame),
+            Opcode::Pop => self.execute_pop(frame),
+            Opcode::Pop2 => self.execute_pop2(frame),
+            Opcode::Dup => self.execute_dup(frame),
+            Opcode::Dup_x1 => self.execute_dup_x1(frame),
+            Opcode::Dup_x2 => self.execute_dup_x2(frame),
+            Opcode::Dup2 => self.execute_dup2(frame),
+            Opcode::Dup2_x1 => self.execute_dup2_x1(frame),
+            Opcode::Dup2_x2 => self.execute_dup2_x2(frame),
+            Opcode::Swap => self.execute_swap(frame),
             Opcode::Iadd => self.execute_iadd(frame),
             Opcode::Ladd => self.execute_ladd(frame),
             Opcode::Fadd => self.execute_fadd(frame),
@@ -112,6 +166,18 @@ impl InstructionExecutor {
             Opcode::Lneg => self.execute_lneg(frame),
             Opcode::Fneg => self.execute_fneg(frame),
             Opcode::Dneg => self.execute_dneg(frame),
+            Opcode::Ishl => self.execute_ishl(frame),
+            Opcode::Lshl => self.execute_lshl(frame),
+            Opcode::Ishr => self.execute_ishr(frame),
+            Opcode::Lshr => self.execute_lshr(frame),
+            Opcode::Iushr => self.execute_iushr(frame),
+            Opcode::Lushr => self.execute_lushr(frame),
+            Opcode::Iand => self.execute_iand(frame),
+            Opcode::Land => self.execute_land(frame),
+            Opcode::Ior => self.execute_ior(frame),
+            Opcode::Lor => self.execute_lor(frame),
+            Opcode::Ixor => self.execute_ixor(frame),
+            Opcode::Lxor => self.execute_lxor(frame),
             Opcode::Iinc => self.execute_iinc(frame, pc),
             Opcode::I2l => self.execute_i2l(frame),
             Opcode::I2f => self.execute_i2f(frame),
@@ -127,8 +193,13 @@ impl InstructionExecutor {
             Opcode::D2l => self.execute_d2l(frame),
             Opcode::D2f => self.execute_d2f(frame),
             Opcode::I2b => self.execute_i2b(frame),
+            Opcode::Fcmpl => self.execute_fcmpl(frame),
+            Opcode::Fcmpg => self.execute_fcmpg(frame),
+            Opcode::Dcmpl => self.execute_dcmpl(frame),
+            Opcode::Dcmpg => self.execute_dcmpg(frame),
             Opcode::I2c => self.execute_i2c(frame),
             Opcode::I2s => self.execute_i2s(frame),
+            Opcode::Lcmp => self.execute_lcmp(frame),
             Opcode::Ifeq => self.execute_ifeq(frame, pc),
             Opcode::Ifne => self.execute_ifne(frame, pc),
             Opcode::Iflt => self.execute_iflt(frame, pc),
@@ -141,6 +212,14 @@ impl InstructionExecutor {
             Opcode::If_icmpge => self.execute_if_icmpge(frame, pc),
             Opcode::If_icmpgt => self.execute_if_icmpgt(frame, pc),
             Opcode::If_icmple => self.execute_if_icmple(frame, pc),
+            Opcode::Goto => self.execute_goto(frame, pc),
+            Opcode::Tableswitch => self.execute_tableswitch(frame, pc),
+            Opcode::Lookupswitch => self.execute_lookupswitch(frame, pc),
+            Opcode::Ireturn => self.execute_ireturn(frame),
+            Opcode::Lreturn => self.execute_lreturn(frame),
+            Opcode::Freturn => self.execute_freturn(frame),
+            Opcode::Dreturn => self.execute_dreturn(frame),
+            Opcode::Areturn => self.execute_areturn(frame),
             Opcode::Return => self.execute_return(),
             Opcode::Getstatic => self.execute_getstatic(frame, class_file, runtime_data_area, pc),
             Opcode::Putstatic => self.execute_putstatic(frame, class_file, runtime_data_area, pc),
@@ -148,81 +227,150 @@ impl InstructionExecutor {
             Opcode::Invokespecial => {
                 // TODO: implement invokespecial
                 debug_log!("  Unhandled opcode: {:?}", opcode);
-                Ok(true)
+                Ok(InstructionCompleted::ContinueMethodExecution)
             }
             Opcode::Invokestatic => {
                 self.execute_invokestatic(frame, class_file, runtime_data_area, call_stack, pc)
             }
-
+            Opcode::Newarray => self.execute_newarray(frame, pc),
+            Opcode::Arraylength => self.execute_arraylength(frame),
+            Opcode::Goto_w => self.execute_goto_w(frame, pc),
+            Opcode::Ifnull => self.execute_ifnull(frame, pc),
+            Opcode::Ifnonnull => self.execute_ifnonnull(frame, pc),
             _ => {
                 debug_log!("  Unhandled opcode: {:?}", opcode);
-                Ok(true)
+                Ok(InstructionCompleted::ContinueMethodExecution)
             }
         }
     }
 
     /// Push integer constant -1 onto the operand stack
-    fn execute_iconst_m1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_m1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(-1));
         debug_log!("  iconst_m1");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    fn execute_aconst_null(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Null);
+        debug_log!("  aconst_null");
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 0 onto the operand stack
-    fn execute_iconst_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(0));
         debug_log!("  iconst_0");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 1 onto the operand stack
-    fn execute_iconst_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(1));
         debug_log!("  iconst_1");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 2 onto the operand stack
-    fn execute_iconst_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(2));
         debug_log!("  iconst_2");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 3 onto the operand stack
-    fn execute_iconst_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(3));
         debug_log!("  iconst_3");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 4 onto the operand stack
-    fn execute_iconst_4(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_4(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(4));
         debug_log!("  iconst_4");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push integer constant 5 onto the operand stack
-    fn execute_iconst_5(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iconst_5(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         frame.operand_stack.push(Value::Int(5));
         debug_log!("  iconst_5");
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push long constant 0 onto the operand stack
+    fn execute_lconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Long(0 as i64));
+        debug_log!("  lconst_0");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push long constant 1 onto the operand stack
+    fn execute_lconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Long(1 as i64));
+        debug_log!("  lconst_1");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push float constant 0 onto the operand stack
+    fn execute_fconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Float(0.0));
+        debug_log!("  fconst_0");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push float constant 1 onto the operand stack
+    fn execute_fconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Float(1.0));
+        debug_log!("  fconst_1");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push float constant 2 onto the operand stack
+    fn execute_fconst_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Float(2.0));
+        debug_log!("  fconst_2");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push double constant 0 onto the operand stack
+    fn execute_dconst_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Double(0.0 as f64));
+        debug_log!("  dconst_0");
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Push double constant 1 onto the operand stack
+    fn execute_dconst_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        frame.operand_stack.push(Value::Double(1.0 as f64));
+        debug_log!("  dconst_1");
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push the next byte's value from the bytecode to the operand stack
-    fn execute_bipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_bipush(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let value = frame.bytecode[*pc] as i8 as i32;
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  bipush {}", value);
+        let stack_size = frame.operand_stack.len();
+        debug_log!("stack_size: {}", stack_size);
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Push the next two bytes' value from the bytecode to the operand stack
     /// after applying the indexing equation specified by the specs
-    fn execute_sipush(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_sipush(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -233,16 +381,16 @@ impl InstructionExecutor {
         frame.operand_stack.push(Value::Int(value));
         debug_log!("  sipush {}", value);
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
-    /// Load a String value from the constant pool and push it to the operand stack
+    /// Load a String/Integer/Float value from the constant pool and push it to the operand stack
     fn execute_ldc(
         &self,
         frame: &mut Frame,
         class_file: &ClassFile,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as u16;
 
@@ -250,7 +398,9 @@ impl InstructionExecutor {
             match cp_entry {
                 CpInfo::String { .. } => {
                     if let Some(string_val) = class_file.get_string(index) {
-                        frame.operand_stack.push(Value::Object(string_val.clone()));
+                        frame
+                            .operand_stack
+                            .push(Value::Reference(string_val.clone()));
                         debug_log!("  ldc \"{}\"", string_val);
                     }
                 }
@@ -275,7 +425,52 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Load a String/Integer/Float value from the constant pool ( wide-extended )
+    /// and push it to the operand stack
+    fn execute_ldc_w(
+        &self,
+        frame: &mut Frame,
+        class_file: &ClassFile,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let index_high = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let index_low = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (indexbyte1 << 8) | indexbyte2
+        let index = ((index_high << 8) | index_low) as usize;
+
+        if let Some(cp_entry) = class_file.constant_pool.get(index) {
+            match cp_entry {
+                CpInfo::Integer { .. } => {
+                    if let Some(int_val) = class_file.get_integer(index as u16) {
+                        frame.operand_stack.push(Value::Int(int_val));
+                        debug_log!("  ldc_w {}", int_val);
+                    }
+                }
+                CpInfo::Float { .. } => {
+                    if let Some(float_val) = class_file.get_float(index as u16) {
+                        frame.operand_stack.push(Value::Float(float_val));
+                        debug_log!("  ldc_w {}f", float_val);
+                    }
+                }
+                CpInfo::String { .. } => {
+                    if let Some(string_val) = class_file.get_string(index as u16) {
+                        frame
+                            .operand_stack
+                            .push(Value::Reference(string_val.clone()));
+                        debug_log!("  ldc_w \"{}\"", string_val);
+                    }
+                }
+                // Handle Class, MethodHandle, etc.
+                _ => return Err(format!("ldc_w cannot load Category 2 or invalid types")),
+            }
+        }
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a long or a double value from the constant pool and push it to the operand stack
@@ -284,7 +479,7 @@ impl InstructionExecutor {
         frame: &mut Frame,
         class_file: &ClassFile,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -295,28 +490,17 @@ impl InstructionExecutor {
 
         if let Some(cp_entry) = class_file.constant_pool.get(index as usize) {
             match cp_entry {
-                CpInfo::Long {
-                    high_bytes,
-                    low_bytes,
-                } => {
-                    // AS SPECIFIED BY THE SPECS:
-                    // ((long) high_bytes << 32) + low_bytes
-                    let long_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
-                    let value = Value::Long(long_bits as i64);
-                    frame.operand_stack.push(value.clone());
-                    debug_log!("  ldc2_w {:?}", value);
+                CpInfo::Long { .. } => {
+                    if let Some(long_val) = class_file.get_long(index as u16) {
+                        frame.operand_stack.push(Value::Long(long_val));
+                        debug_log!("  ldc2_w {}L", long_val);
+                    }
                 }
-                CpInfo::Double {
-                    high_bytes,
-                    low_bytes,
-                } => {
-                    // AS SPECIFIED BY THE SPECS:
-                    // ((long) high_bytes << 32) + low_bytes
-                    // Then interpret the bits as a double
-                    let double_bits = ((*high_bytes as u64) << 32) | (*low_bytes as u64);
-                    let value = Value::Double(f64::from_bits(double_bits));
-                    frame.operand_stack.push(value.clone());
-                    debug_log!("  ldc2_w {:?}", value);
+                CpInfo::Double { .. } => {
+                    if let Some(double_val) = class_file.get_double(index as u16) {
+                        frame.operand_stack.push(Value::Double(double_val));
+                        debug_log!("  ldc2_w {}d", double_val);
+                    }
                 }
                 _ => {
                     return Err(format!(
@@ -327,12 +511,16 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of the next byte's value from the bytecode
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iload(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         //TODO: I assume the variable will always be an integer type as specified by the specs
         // I think we should do a check here, but I'll choose to keep the logic simple
         // Same applies to the other iload_<n> instruction implementations
@@ -343,60 +531,64 @@ impl InstructionExecutor {
             debug_log!("  iload \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 0
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 0 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_0 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 1
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 1 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_1 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 2
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 2 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_2 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load an integer value at the index of 3
     /// from the frame's local variables and push it to the operand stack
-    fn execute_iload_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iload_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 3 as usize;
         if let Some(variable) = frame.local_variables.get(index) {
             frame.operand_stack.push(variable.clone());
             debug_log!("  iload_3 \"{:?}\"", variable);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of the next byte's value in the bytecode
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_aload(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         //TODO: I assume the variable will always be a reference type as specified by the specs
         // I think we should do a check here, but I'll choose to keep the logic simple
         // Same applies to the other aload_<n> instruction implementations
@@ -410,12 +602,12 @@ impl InstructionExecutor {
             return Err("Local variable is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 0
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(0) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_0 = {:?}", value);
@@ -423,12 +615,12 @@ impl InstructionExecutor {
             return Err("Local variable 0 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 1
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(1) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_1 = {:?}", value);
@@ -436,12 +628,12 @@ impl InstructionExecutor {
             return Err("Local variable 1 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 2
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(2) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_2 = {:?}", value);
@@ -449,12 +641,12 @@ impl InstructionExecutor {
             return Err("Local variable 2 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load the reference located at the index of 3
     /// from the frame's local variables and push it to the operand stack
-    fn execute_aload_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_aload_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(value) = frame.local_variables.get(3) {
             frame.operand_stack.push(value.clone());
             debug_log!("  aload_3 = {:?}", value);
@@ -462,103 +654,1149 @@ impl InstructionExecutor {
             return Err("Local variable 3 is not initialized".to_string());
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Load int from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_iaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("iaload: expected int index, got {:?}", other)),
+            None => return Err("iaload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Int(value) => {
+                        frame.operand_stack.push(Value::Int(*value));
+                        debug_log!("  iaload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("iaload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("iaload: expected array reference, got {:?}", other)),
+            None => Err("iaload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load long from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_laload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("laload: expected int index, got {:?}", other)),
+            None => return Err("laload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Long(value) => {
+                        frame.operand_stack.push(Value::Long(*value));
+                        debug_log!("  laload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "laload: array element is not long, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("laload: expected array reference, got {:?}", other)),
+            None => Err("laload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load float from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_faload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("faload: expected int index, got {:?}", other)),
+            None => return Err("faload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Float(value) => {
+                        frame.operand_stack.push(Value::Float(*value));
+                        debug_log!("  faload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "faload: array element is not float, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("faload: expected array reference, got {:?}", other)),
+            None => Err("faload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load double from array
+    /// Pops index and arrayref from stack, pushes value at array[index]
+    fn execute_daload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("daload: expected int index, got {:?}", other)),
+            None => return Err("daload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                match &array[index_usize] {
+                    Value::Double(value) => {
+                        frame.operand_stack.push(Value::Double(*value));
+                        debug_log!("  daload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "daload: array element is not double, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("daload: expected array reference, got {:?}", other)),
+            None => Err("daload: failed to pop arrayref".to_string()),
+        }
     }
 
     /// Load a reference value from an array and push it to the operand stack
-    fn execute_aaload(&self, frame: &mut Frame) -> Result<bool, String> {
-        //TODO: Handle missing index and array ref and StackOverFlowException
-        if let Some(Value::Int(index)) = frame.operand_stack.pop() {
-            if let Some(arrayref) = frame.operand_stack.pop() {
-                match arrayref {
-                    Value::Array(ref arr) => {
-                        if index >= 0 && (index as usize) < arr.len() {
-                            let item = arr[index as usize].clone();
-                            frame.operand_stack.push(item.clone());
-                            debug_log!("  aaload [{}] = {:?}", index, item);
-                        } else {
-                            return Err(format!("Array index out of bounds: {}", index));
-                        }
-                    }
-                    _ => {
-                        return Err(format!("Expected array reference, got {:?}", arrayref));
-                    }
-                }
-            }
+    fn execute_aaload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: aaload requires 2 operands".to_string());
         }
 
-        Ok(true)
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("aaload: expected int index, got {:?}", other)),
+            None => return Err("aaload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array
+                // NOTE: I think we should wrap the Reference(String) value
+                // type in a Rc<RefCell<>> too to properly follow the JVM specs
+                match &array[index_usize] {
+                    Value::Reference(value) => {
+                        frame.operand_stack.push(Value::Reference(value.clone()));
+                        debug_log!("  aaload [{}] = {}", index, value);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!(
+                        "aaload: array element is not reference, got {:?}",
+                        other
+                    )),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("aaload: expected array reference, got {:?}", other)),
+            None => Err("aaload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_baload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: baload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("baload: expected int index, got {:?}", other)),
+            None => return Err("baload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a byte stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  baload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("baload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("baload: expected array reference, got {:?}", other)),
+            None => Err("baload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_caload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: caload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("caload: expected int index, got {:?}", other)),
+            None => return Err("caload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a char stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  caload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("caload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("caload: expected array reference, got {:?}", other)),
+            None => Err("caload: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Load a reference value from an array and push it to the operand stack
+    fn execute_saload(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() < 2 {
+            return Err("Stack underflow: saload requires 2 operands".to_string());
+        }
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("saload: expected int index, got {:?}", other)),
+            None => return Err("saload: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index before converting to usize
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array immutably
+                let array = arrayref.borrow();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Get value from array ( should be a short stored as int )
+                match &array[index_usize] {
+                    Value::Int(byte_val) => {
+                        frame.operand_stack.push(Value::Int(*byte_val));
+                        debug_log!("  saload [{}] = {}", index, byte_val);
+                        Ok(InstructionCompleted::ContinueMethodExecution)
+                    }
+                    other => Err(format!("saload: array element is not int, got {:?}", other)),
+                }
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot load from null array".to_string())
+            }
+            Some(other) => Err(format!("saload: expected array reference, got {:?}", other)),
+            None => Err("saload: failed to pop arrayref".to_string()),
+        }
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the next byte's value from the bytecode in the frame's local variables
-    fn execute_istore(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_istore(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 0 in the frame's local variables
-    fn execute_istore_0(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_0(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 0 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_0[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 1 in the frame's local variables
-    fn execute_istore_1(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 1 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_1[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 2 in the frame's local variables
-    fn execute_istore_2(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 2 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_2[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Store an integer value popped from the operand stack
     /// at the index of the 3 in the frame's local variables
-    fn execute_istore_3(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_istore_3(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         let index = 3 as usize;
 
         if let Some(value) = frame.operand_stack.pop() {
             frame.local_variables.set(index, value.clone());
             debug_log!("  istore_3[{}] = {:?}", index, value);
+        } else {
+            debug_log!("operand stack was empty!");
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_iastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("iastore: expected int value, got {:?}", other)),
+            None => return Err("iastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("iastore: expected int index, got {:?}", other)),
+            None => return Err("iastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Int(value);
+                debug_log!("  iastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "iastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("iastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_lastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Long(v)) => v,
+            Some(other) => return Err(format!("lastore: expected long value, got {:?}", other)),
+            None => return Err("lastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("lastore: expected int index, got {:?}", other)),
+            None => return Err("lastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Long(value);
+                debug_log!("  lastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "lastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("lastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_fastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Float(v)) => v,
+            Some(other) => return Err(format!("fastore: expected float value, got {:?}", other)),
+            None => return Err("fastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("fastore: expected int index, got {:?}", other)),
+            None => return Err("fastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Float(value);
+                debug_log!("  fastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "fastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("fastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_dastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Double(v)) => v,
+            Some(other) => return Err(format!("dastore: expected double value, got {:?}", other)),
+            None => return Err("dastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("dastore: expected int index, got {:?}", other)),
+            None => return Err("dastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                array[index_usize] = Value::Double(value);
+                debug_log!("  dastore [{}] = {}", index, value);
+
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "dastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("dastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_bastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("bastore: expected int value, got {:?}", other)),
+            None => return Err("bastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("bastore: expected int index, got {:?}", other)),
+            None => return Err("bastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as i8) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  bastore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "bastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("bastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_castore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("castore: expected int value, got {:?}", other)),
+            None => return Err("castore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("castore: expected int index, got {:?}", other)),
+            None => return Err("castore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as u16) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  castore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "castore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("castore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop value, index, and arrayref from the operand stack
+    /// and set arrayref[index] = value
+    fn execute_sastore(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle StackOverflow Exception
+
+        // Pop value to store
+        let value = match frame.operand_stack.pop() {
+            Some(Value::Int(v)) => v,
+            Some(other) => return Err(format!("sastore: expected int value, got {:?}", other)),
+            None => return Err("sastore: failed to pop value".to_string()),
+        };
+
+        // Pop index
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("sastore: expected int index, got {:?}", other)),
+            None => return Err("sastore: failed to pop index".to_string()),
+        };
+
+        // Pop array reference
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                // Check for negative index
+                if index < 0 {
+                    return Err(format!("ArrayIndexOutOfBoundsException: {}", index));
+                }
+
+                let index_usize = index as usize;
+
+                // Borrow the array mutably
+                let mut array = arrayref.borrow_mut();
+
+                // Check upper bound
+                if index_usize >= array.len() {
+                    return Err(format!(
+                        "ArrayIndexOutOfBoundsException: Index {} out of bounds for length {}",
+                        index,
+                        array.len()
+                    ));
+                }
+
+                // Store value in array
+                let byte_value = (value as i16) as i32;
+                array[index_usize] = Value::Int(byte_value);
+
+                debug_log!("  sastore [{}] = {}", index, value);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            Some(Value::Null) => {
+                Err("NullPointerException: Cannot store to null array".to_string())
+            }
+            Some(other) => Err(format!(
+                "sastore: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("sastore: failed to pop arrayref".to_string()),
+        }
+    }
+
+    /// Pop the top operand stack value
+    /// The pop instruction must not be used unless value is a value of a category 1 computational type
+    fn execute_pop(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        debug_log!("stack_size: {}", stack_size);
+        if stack_size > 0 {
+            let value = frame.operand_stack.pop();
+            debug_log!("  pop: {:?}", value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop the top one or two operand stack values
+    /// Form1: each of value1 and value2 is a value of a category 1 computational type
+    /// Form2: value is a value of a category 2 computational type
+    fn execute_pop2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            let value1 = frame.operand_stack.pop();
+            let value2 = frame.operand_stack.pop();
+            debug_log!("  pop2: {:?}, {:?}", value1, value2);
+        } else if stack_size > 0 {
+            let value = frame.operand_stack.pop();
+            debug_log!("  pop2: {:?}", value);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// ..., value →
+    // ..., value, value
+    fn execute_dup(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 0 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push(value.clone());
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    fn execute_dup_x1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value3, value2, value1 →
+    // ..., value1, value3, value2, value1
+    // where value1, value2, and value3 are all values of a category 1 computational type
+    // Form 2:
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    // where value1 is a value of a category 1 computational type and value2 is a value of a category 2 computational type
+    fn execute_dup_x2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 2 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 3);
+            }
+        } else if stack_size > 1 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value2, value1 →
+    // ..., value2, value1, value2, value1
+    // where both value1 and value2 are values of a category 1 computational type
+    // Form 2:
+    // ..., value →
+    // ..., value, value
+    // where value is a value of a category 2 computational type
+    fn execute_dup2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            let value1 = frame.operand_stack.peek_at(stack_size - 1).cloned();
+            let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+            if let (Some(v1), Some(v2)) = (value1, value2) {
+                frame.operand_stack.push(v2);
+                frame.operand_stack.push(v1);
+            }
+        } else if stack_size > 0 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push(value.clone());
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value3, value2, value1 →
+    // ..., value2, value1, value3, value2, value1
+    // where value1, value2, and value3 are all values of a category 1 computational type
+    // Form 2:
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    // where value1 is a value of a category 2 computational type and value2 is a value of a category 1 computational type
+    fn execute_dup2_x1(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 2 {
+            let value1 = frame.operand_stack.peek_at(stack_size - 1).cloned();
+            let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+            if let (Some(v1), Some(v2)) = (value1, value2) {
+                frame.operand_stack.push_at(v1, stack_size - 3);
+                frame.operand_stack.push_at(v2, stack_size - 3);
+            }
+        } else if stack_size > 1 {
+            if let Some(value1) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value1.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    // Form 1:
+    // ..., value4, value3, value2, value1 →
+    // ..., value2, value1, value4, value3, value2, value1
+    // where value1, value2, value3, and value4 are all values of a category 1 computational type
+    // Form 2:
+    // ..., value3, value2, value1 →
+    // ..., value1, value3, value2, value1
+    // where value1 is a value of a category 2 computational type and value2 and value3 are both values of a category 1 computational type
+    // Form 3:
+    // ..., value3, value2, value1 →
+    // ..., value2, value1, value3, value2, value1
+    // where value1 and value2 are both values of a category 1 computational type and value3 is a value of a category 2 computational type
+    // Form 4:
+    // ..., value2, value1 →
+    // ..., value1, value2, value1
+    // where value1 and value2 are both values of a category 2 computational type
+    fn execute_dup2_x2(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 3 {
+            let value1 = frame.operand_stack.peek_at(stack_size - 1).cloned();
+            let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+            if let (Some(v1), Some(v2)) = (value1, value2) {
+                frame.operand_stack.push_at(v1, stack_size - 4);
+                frame.operand_stack.push_at(v2, stack_size - 4);
+            }
+        } else if stack_size > 2 {
+            let value1 = frame.operand_stack.peek().cloned();
+
+            if let Some(v1) = value1 {
+                if matches!(v1, Value::Long(_) | Value::Double(_)) {
+                    frame.operand_stack.push_at(v1, stack_size - 3);
+                } else {
+                    let value2 = frame.operand_stack.peek_at(stack_size - 2).cloned();
+
+                    if let Some(v2) = value2 {
+                        frame.operand_stack.push_at(v1, stack_size - 3);
+                        frame.operand_stack.push_at(v2, stack_size - 3);
+                    }
+                }
+            }
+        } else if stack_size > 1 {
+            if let Some(value) = frame.operand_stack.peek() {
+                frame.operand_stack.push_at(value.clone(), stack_size - 2);
+            }
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Swap the top two operand stack values
+    fn execute_swap(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: This implementation lacks type validation
+        let stack_size = frame.operand_stack.len();
+        if stack_size > 1 {
+            frame.operand_stack.swap(stack_size - 1, stack_size - 2);
+        } else {
+            debug_log!("operand stack was empty!");
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_iadd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_iadd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
@@ -569,12 +1807,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_ladd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ladd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
@@ -585,12 +1823,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_fadd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fadd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
@@ -601,12 +1839,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, adds them, and then
     /// push the result back onto the operand stack
-    fn execute_dadd(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dadd(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
@@ -617,12 +1855,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_isub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_isub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
@@ -633,12 +1871,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_lsub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lsub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
@@ -649,12 +1887,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_fsub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fsub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
@@ -665,12 +1903,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, subtracts them, and then
     /// push the result back onto the operand stack
-    fn execute_dsub(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dsub(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
@@ -681,12 +1919,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_imul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_imul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
@@ -697,12 +1935,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_lmul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lmul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
@@ -713,12 +1951,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_fmul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fmul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
@@ -729,12 +1967,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, multiplies them, and then
     /// push the result back onto the operand stack
-    fn execute_dmul(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dmul(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
@@ -745,12 +1983,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_idiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_idiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -762,12 +2000,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_ldiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ldiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -779,12 +2017,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_fdiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fdiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -796,12 +2034,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, divides them, and then
     /// push the result back onto the operand stack
-    fn execute_ddiv(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ddiv(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -813,12 +2051,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_irem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_irem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -834,12 +2072,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two long values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_lrem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lrem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -855,12 +2093,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two float values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_frem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_frem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -876,12 +2114,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two double values from the operand stack, calculates their remainder,
     /// and then push the result back onto the operand stack
-    fn execute_drem(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_drem(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         //TODO: Handle division by zero
@@ -897,12 +2135,12 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_ineg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_ineg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
@@ -915,12 +2153,12 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Int(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_lneg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_lneg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
@@ -933,12 +2171,12 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Long(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_fneg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_fneg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
@@ -951,12 +2189,12 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Float(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the operand stack, negates it, and then
     /// push the result back onto the operand stack
-    fn execute_dneg(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_dneg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         //TODO: Handle insufficient number of values in the operand stack
         //TODO: Handle overflows
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
@@ -969,13 +2207,205 @@ impl InstructionExecutor {
             frame.operand_stack.push(Value::Double(negated_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and shift value1
+    /// left by s bit positions, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_ishl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                let result = value1 << mask;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// left by s bit positions, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_lshl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                let result = value1 << mask;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and shift value1
+    /// right by s bit positions, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_ishr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                let result = value1 >> mask;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// right by s bit positions, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_lshr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                let result = value1 >> mask;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and shift value1 right
+    /// by s bit positions zero-extended, where s is the low 5 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_iushr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x1F) as u32;
+                // Extend with zeroes despite the sign bit value
+                let result = ((value1 as u32) >> mask) as i32;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop one integer and one long values from the operand stack and shift value1
+    /// right by s bit positions zero-extended, where s is the low 6 bits of value2
+    /// and then push the result back to the operand stack
+    fn execute_lushr(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let mask = (value2 & 0x3F) as u32;
+                // Extend with zeroes despite the sign bit value
+                let result = ((value1 as u64) >> mask) as i64;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE AND on
+    /// both of them and then push the result back to the operand stack
+    fn execute_iand(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 & value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE AND on
+    /// both of them and then push the result back to the operand stack
+    fn execute_land(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 & value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE OR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_ior(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 | value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE OR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_lor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 | value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two integer values from the operand stack and perform BITWISE XOR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_ixor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
+                let result = value1 ^ value2;
+
+                frame.operand_stack.push(Value::Int(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop two long values from the operand stack and perform BITWISE XOR on
+    /// both of them and then push the result back to the operand stack
+    fn execute_lxor(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        //TODO: Handle empty stack and type validation
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = value1 ^ value2;
+
+                frame.operand_stack.push(Value::Long(result));
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Increment an integer value located in the current frame's local variables at the
     /// index of the next byte's value from the bytecode with the value of the next signed
     /// byte's value from the bytecode
-    fn execute_iinc(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iinc(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index = frame.bytecode[*pc] as usize;
         *pc += 1;
@@ -987,84 +2417,84 @@ impl InstructionExecutor {
             frame.local_variables.set(index, Value::Int(new_value));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a long, and
     /// finally push it back to the operand stack
-    fn execute_i2l(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2l(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = value as i64;
             frame.operand_stack.push(Value::Long(result));
             debug_log!("  i2l {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
-    fn execute_i2f(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2f(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = value as f32;
             frame.operand_stack.push(Value::Float(result));
             debug_log!("  i2f {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_i2d(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2d(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = value as f64;
             frame.operand_stack.push(Value::Double(result));
             debug_log!("  i2d {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
-    fn execute_l2i(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_l2i(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             let result = value as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  l2i {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
-    fn execute_l2f(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_l2f(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             let result = value as f32;
             frame.operand_stack.push(Value::Float(result));
             debug_log!("  l2f {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a long value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_l2d(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_l2d(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Long(value)) = frame.operand_stack.pop() {
             let result = value as f64;
             frame.operand_stack.push(Value::Double(result));
             debug_log!("  l2d {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
-    fn execute_f2i(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_f2i(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1085,12 +2515,12 @@ impl InstructionExecutor {
             debug_log!("  f2i {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the current frame's operand stack, cast it into a long, and
     /// finally push it back to the operand stack
-    fn execute_f2l(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_f2l(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1111,24 +2541,24 @@ impl InstructionExecutor {
             debug_log!("  f2l {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a float value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_f2d(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_f2d(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Float(value)) = frame.operand_stack.pop() {
             let result = value as f64;
             frame.operand_stack.push(Value::Double(result));
             debug_log!("  f2d {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the current frame's operand stack, cast it into an integer, and
     /// finally push it back to the operand stack
-    fn execute_d2i(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_d2i(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1149,12 +2579,12 @@ impl InstructionExecutor {
             debug_log!("  d2i {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the current frame's operand stack, cast it into a double, and
     /// finally push it back to the operand stack
-    fn execute_d2l(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_d2l(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
             // AS SPECIFIED BY THE SPECS:
             // NaN converts to 0
@@ -1175,59 +2605,180 @@ impl InstructionExecutor {
             debug_log!("  d2l {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop a double value from the current frame's operand stack, cast it into a float, and
     /// finally push it back to the operand stack
-    fn execute_d2f(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_d2f(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Double(value)) = frame.operand_stack.pop() {
             let result = value as f32;
             debug_log!("  d2f {} -> {}", value, result);
             frame.operand_stack.push(Value::Float(result));
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a byte, and
     /// finally push it back to the operand stack
-    fn execute_i2b(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2b(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = (value as i8) as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  i2b {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two floats on the operand stack
+    /// If either value is NaN, push -1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_fcmpl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    -1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  fcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two floats on the operand stack
+    /// If either value is NaN, push 1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_fcmpg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Float(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Float(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  fcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two doubles on the operand stack
+    /// If either value is NaN, push -1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_dcmpl(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    -1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  dcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two doubles on the operand stack
+    /// If either value is NaN, push 1 onto the stack
+    /// Otherwise: push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_dcmpg(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Double(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Double(value1)) = frame.operand_stack.pop() {
+                let result = if value1.is_nan() || value2.is_nan() {
+                    1
+                } else if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  dcmpg {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a char, and
     /// finally push it back to the operand stack
-    fn execute_i2c(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2c(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = (value as u16) as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  i2c {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop an integer value from the current frame's operand stack, cast it into a short, and
     /// finally push it back to the operand stack
-    fn execute_i2s(&self, frame: &mut Frame) -> Result<bool, String> {
+    fn execute_i2s(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             let result = (value as i16) as i32;
             frame.operand_stack.push(Value::Int(result));
             debug_log!("  i2s {} -> {}", value, result);
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Compare two longs on the operand stack
+    /// push 1 if value1 > value2, 0 if equal, -1 if value1 < value2
+    fn execute_lcmp(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Long(value2)) = frame.operand_stack.pop() {
+            if let Some(Value::Long(value1)) = frame.operand_stack.pop() {
+                let result = if value1 > value2 {
+                    1
+                } else if value1 == value2 {
+                    0
+                } else {
+                    -1
+                };
+
+                frame.operand_stack.push(Value::Int(result));
+                debug_log!("  lcmp {} cmp {} = {}", value1, value2, result);
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it equals zero
-    fn execute_ifeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifeq(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value == 0 {
                 *pc += 1;
@@ -1236,22 +2787,27 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it doesn't equals zero
-    fn execute_ifne(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifne(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value != 0 {
                 *pc += 1;
@@ -1260,21 +2816,26 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
         }
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is less than zero
-    fn execute_iflt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_iflt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value < 0 {
                 *pc += 1;
@@ -1283,22 +2844,27 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is greater than or equal zero
-    fn execute_ifge(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifge(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value >= 0 {
                 *pc += 1;
@@ -1307,22 +2873,27 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is greater than zero
-    fn execute_ifgt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifgt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value > 0 {
                 *pc += 1;
@@ -1331,22 +2902,27 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop some value from the operand stack and check if it is less than or equal zero
-    fn execute_ifle(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_ifle(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value)) = frame.operand_stack.pop() {
             if value <= 0 {
                 *pc += 1;
@@ -1355,22 +2931,27 @@ impl InstructionExecutor {
                 let index_low = frame.bytecode[*pc] as u16;
 
                 // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                let offset = ((index_high << 8) | index_low) as usize;
+                let offset = ((index_high << 8) | index_low) as i16;
 
                 // NOTE: The offset is relative to the address of the if<cond> opcode itself,
-                // not the current PC
-                *pc -= 3;
-                *pc += offset;
+                // not the current PC. Using isize arithmetic avoids underflow on backward branches.
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
             } else {
                 *pc += 2;
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if they are equal
-    fn execute_if_icmpeq(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpeq(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 == value2 {
@@ -1380,23 +2961,28 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if they are not equal
-    fn execute_if_icmpne(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpne(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 != value2 {
@@ -1406,24 +2992,29 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is less than the
     /// second
-    fn execute_if_icmplt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmplt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 < value2 {
@@ -1433,24 +3024,29 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is greater than or equal
     /// the second
-    fn execute_if_icmpge(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpge(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 >= value2 {
@@ -1460,23 +3056,28 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is greater than the second
-    fn execute_if_icmpgt(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmpgt(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 > value2 {
@@ -1486,24 +3087,29 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Pop two integer values from the operand stack and check if the first is less than or equal
     /// the second
-    fn execute_if_icmple(&self, frame: &mut Frame, pc: &mut usize) -> Result<bool, String> {
+    fn execute_if_icmple(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
         if let Some(Value::Int(value2)) = frame.operand_stack.pop() {
             if let Some(Value::Int(value1)) = frame.operand_stack.pop() {
                 if value1 <= value2 {
@@ -1513,26 +3119,263 @@ impl InstructionExecutor {
                     let index_low = frame.bytecode[*pc] as u16;
 
                     // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
-                    let offset = ((index_high << 8) | index_low) as usize;
+                    let offset = ((index_high << 8) | index_low) as i16;
 
                     // NOTE: The offset is relative to the address of the if<cond> opcode itself,
                     // not the current PC
-                    *pc -= 3;
-                    *pc += offset;
+                    let branch_base = (*pc as isize) - 3;
+                    let target = (branch_base + offset as isize) as usize;
+                    *pc = target.wrapping_sub(1);
                 } else {
                     *pc += 2;
                 }
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
-    /// Breaks the current frame's execution loop
-    fn execute_return(&self) -> Result<bool, String> {
+    /// Unconditionally branch to a target address specified by a 16-bit signed offset
+    /// from the address of the goto opcode itself
+    fn execute_goto(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let branchbyte1 = frame.bytecode[*pc] as u16;
+        *pc += 1;
+        let branchbyte2 = frame.bytecode[*pc] as u16;
+
+        // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+        let offset = ((branchbyte1 << 8) | (branchbyte2)) as i16;
+
+        let goto_address = *pc - 2;
+        let target = (goto_address as isize + offset as isize) as usize;
+
+        // NOTE: The offset is relative to the address of the goto opcode itself,
+        // not the current PC
+        *pc = target.wrapping_sub(1);
+
+        debug_log!("  goto {} (target: {})", offset, target);
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// This instruction is used for multi-way conditional branching.
+    /// It checks an integer value from the operand stack against
+    /// a range of case values and branches to a specific instruction address based on the match.
+    fn execute_tableswitch(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        // Save the initial address as we will need it later
+        let tableswitch_start = *pc;
+        *pc += 1;
+
+        // keep skipping padding bytes until we reach
+        // an address that is aligned to a 4-byte boundary
+        while *pc % 4 != 0 {
+            *pc += 1;
+        }
+
+        // Read default, low, and high bytes as signed 32-bit values
+        let default_offset = self.read_i32(&frame.bytecode, pc);
+        let low = self.read_i32(&frame.bytecode, pc);
+        let high = self.read_i32(&frame.bytecode, pc);
+
+        // Read jump offsets as signed 32-bit values
+        let number_of_offsets = (high - low + 1) as usize;
+        let mut jump_offsets = Vec::with_capacity(number_of_offsets);
+
+        for _ in 0..number_of_offsets {
+            jump_offsets.push(self.read_i32(&frame.bytecode, pc));
+        }
+
+        // The index is the parameter of the switch case
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => return Err(format!("tableswitch: expected int index, got {:?}", other)),
+            None => return Err("tableswitch: failed to pop index".to_string()),
+        };
+
+        // If the index is out of bound, fallback to default case
+        // Otherwise, go to the case with the specified index
+        let target_offset: i32;
+        if index >= low && index <= high {
+            let offset_index = (index - low) as usize;
+            target_offset = jump_offsets[offset_index];
+        } else {
+            target_offset = default_offset;
+        }
+
+        // Move the program count to calculated target_offset address
+        let target = (tableswitch_start as isize + target_offset as isize) as usize;
+        *pc = target.wrapping_sub(1);
+
+        debug_log!(
+            "  tableswitch index={} low={} high={} default={} target={}",
+            index,
+            low,
+            high,
+            default_offset,
+            target
+        );
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// This instruction is used for multi-way conditional branching.
+    /// It checks an integer value from the operand stack against a set of
+    /// case values (key-offset pairs) and branches to a specific instruction address based on the match.
+    fn execute_lookupswitch(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        // Save the initial address as we will need it later
+        let lookupswitch_start = *pc;
+        *pc += 1;
+
+        // keep skipping padding bytes until we reach
+        // an address that is aligned to a 4-byte boundary
+        while *pc % 4 != 0 {
+            *pc += 1;
+        }
+
+        // Read default bytes as signed 32-bit values
+        let default_offset = self.read_i32(&frame.bytecode, pc);
+
+        // Read jump offsets as signed 32-bit values
+        let npairs = self.read_i32(&frame.bytecode, pc);
+        let mut pairs: Vec<(i32, i32)> = Vec::with_capacity(npairs as usize);
+        for _ in 0..npairs {
+            let key = self.read_i32(&frame.bytecode, pc);
+            let offset = self.read_i32(&frame.bytecode, pc);
+            pairs.push((key, offset));
+        }
+
+        // The index is the parameter of the switch case
+        let index = match frame.operand_stack.pop() {
+            Some(Value::Int(i)) => i,
+            Some(other) => {
+                return Err(format!("lookupswitch: expected int index, got {:?}", other));
+            }
+            None => return Err("lookupswitch: failed to pop index".to_string()),
+        };
+
+        // If the index is out of bound, fallback to default case
+        // Otherwise, go to the offset with the specified key
+        let mut target_offset = default_offset;
+        for (key, offset) in pairs.iter() {
+            if *key == index {
+                target_offset = *offset;
+                break;
+            }
+        }
+
+        // Move the program count to calculated target_offset address
+        let target = (lookupswitch_start as isize + target_offset as isize) as usize;
+        *pc = target.wrapping_sub(1);
+
+        debug_log!(
+            "  lookupswitch index={} npairs={} default={} target={}",
+            index,
+            npairs,
+            default_offset,
+            target
+        );
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Helper function to read bytes from a frame's bytecode
+    /// as signed 32-bit values and return them after construction
+    /// by a formula stated by the specs in the `tableswitch` opcode description
+    fn read_i32(&self, bytecode: &[u8], pc: &mut usize) -> i32 {
+        let b1 = bytecode[*pc] as i32;
+        *pc += 1;
+        let b2 = bytecode[*pc] as i32;
+        *pc += 1;
+        let b3 = bytecode[*pc] as i32;
+        *pc += 1;
+        let b4 = bytecode[*pc] as i32;
+        *pc += 1;
+
+        // AS SPECIFIED BY THE SPECS:
+        //(byte1 << 24) | (byte2 << 16) | (byte3 << 8) | byte4.
+        ((b1 << 24) | (b2 << 16) | (b3 << 8) | b4) as i32
+    }
+
+    /// Pop an integer value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_ireturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Int(value)) = frame.operand_stack.pop() {
+            debug_log!("  Ireturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Int(
+                value,
+            ))))
+        } else {
+            Err("Ireturn: operand stack was empty or top value was not an Integer".to_string())
+        }
+    }
+
+    /// Pop a long value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_lreturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Long(value)) = frame.operand_stack.pop() {
+            debug_log!("  Lreturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Long(
+                value,
+            ))))
+        } else {
+            Err("Lreturn: operand stack was empty or top value was not a Long".to_string())
+        }
+    }
+
+    /// Pop a float value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_freturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Float(value)) = frame.operand_stack.pop() {
+            debug_log!("  Freturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Float(
+                value,
+            ))))
+        } else {
+            Err("Freturn: operand stack was empty or top value was not a Float".to_string())
+        }
+    }
+
+    /// Pop a double value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_dreturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Double(value)) = frame.operand_stack.pop() {
+            debug_log!("  Dreturn: {}", value);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(Value::Double(
+                value,
+            ))))
+        } else {
+            Err("Dreturn: operand stack was empty or top value was not a Double".to_string())
+        }
+    }
+
+    /// Pop a reference value from the current stack's operand stack and return it to the
+    /// invoker frame
+    fn execute_areturn(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if let Some(Value::Reference(objectref)) = frame.operand_stack.pop() {
+            debug_log!("  Areturn: {}", objectref);
+            Ok(InstructionCompleted::ReturnFromMethod(Some(
+                Value::Reference(objectref),
+            )))
+        } else {
+            Err("Areturn: operand stack was empty or top value was not a Reference".to_string())
+        }
+    }
+
+    /// Breaks the current frame's execution loop ( return void )
+    fn execute_return(&self) -> Result<InstructionCompleted, String> {
         debug_log!("  return");
         // Signal to break the execution loop
-        Ok(false)
+        Ok(InstructionCompleted::ReturnFromMethod(None))
     }
 
     /// Load a static field reference located at the index of the next two bytes' value in the bytecode
@@ -1544,7 +3387,7 @@ impl InstructionExecutor {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1572,7 +3415,7 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Put a static field reference located at the index of the next two bytes' value in the bytecode
@@ -1584,7 +3427,7 @@ impl InstructionExecutor {
         class_file: &ClassFile,
         runtime_data_area: &mut RuntimeDataArea,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1602,7 +3445,7 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a non-static method reference located at the index of the next two bytes' value in the bytecode
@@ -1614,7 +3457,7 @@ impl InstructionExecutor {
         frame: &mut Frame,
         class_file: &ClassFile,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1637,7 +3480,7 @@ impl InstructionExecutor {
                 if let Some(arg) = frame.operand_stack.pop() {
                     if let Some(_print_stream) = frame.operand_stack.pop() {
                         match arg {
-                            Value::Object(s) => println!("{}", s),
+                            Value::Reference(s) => println!("{}", s),
                             Value::Int(i) => println!("{}", i),
                             Value::Long(l) => println!("{}", l),
                             Value::Float(f) => println!("{}", f),
@@ -1651,7 +3494,7 @@ impl InstructionExecutor {
             }
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Load a static method reference located at the index of the next two bytes' value in the bytecode
@@ -1665,7 +3508,7 @@ impl InstructionExecutor {
         runtime_data_area: &mut RuntimeDataArea,
         call_stack: &mut CallStack,
         pc: &mut usize,
-    ) -> Result<bool, String> {
+    ) -> Result<InstructionCompleted, String> {
         *pc += 1;
         let index_high = frame.bytecode[*pc] as u16;
         *pc += 1;
@@ -1687,8 +3530,9 @@ impl InstructionExecutor {
             let params_count = self.count_method_params(&descriptor);
             let mut params = Vec::new();
 
-            for _ in 0..params_count {
+            for i in 0..params_count {
                 if let Some(arg) = frame.operand_stack.pop() {
+                    debug_log!("param[{}] = {:?}", i, arg);
                     params.push(arg);
                 }
             }
@@ -1700,7 +3544,7 @@ impl InstructionExecutor {
                 Some(method) => method,
                 None => {
                     debug_log!("No {} method found", method_name);
-                    return Ok(true);
+                    return Ok(InstructionCompleted::ContinueMethodExecution);
                 }
             };
 
@@ -1725,24 +3569,252 @@ impl InstructionExecutor {
 
             call_stack.push_frame(method_name, bytecode, max_locals as usize, params);
 
-            let mut top_frame = call_stack
-                .current_frame()
-                .ok_or("Could not acquire top frame")?
-                .clone();
+            let execution_result = unsafe {
+                // Get a raw pointer to self
+                let self_ptr = call_stack as *mut CallStack;
 
-            top_frame.execute_frame(class_file, runtime_data_area, call_stack)?;
+                // Borrow current frame mutably
+                if let Some(current_frame) = (*self_ptr).current_frame() {
+                    // Pass self through the raw pointer ( second mutable borrow )
+                    current_frame.execute_frame(class_file, runtime_data_area, &mut *self_ptr)
+                } else {
+                    Err("No current frame found".to_string())
+                }
+            };
 
-            if let Some(popped_frame) = call_stack.pop_frame() {
-                debug_log!(
-                    "\n\nFINISHED EXECUTING FRAME: {}\n\n",
-                    popped_frame.method_name.unwrap_or_default()
-                );
+            match execution_result {
+                Ok(returned) => {
+                    call_stack.pop_frame();
+                    if let Some(value) = returned {
+                        if let Some(invoker_frame) = call_stack.current_frame() {
+                            invoker_frame.operand_stack.push(value);
+                        }
+                    }
+                }
+                Err(msg) => {
+                    debug_log!("Error executing frame: {}", msg);
+                }
             }
 
             //TODO: Handle external class methods
         }
 
-        Ok(true)
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Create a new primitive array
+    /// of the type corresponding to the next byte's value of the frame's bytecode
+    /// and of the count corresponding to the top value of the frame's operand stack
+    fn execute_newarray(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let atype = frame.bytecode[*pc];
+
+        //TODO: Handle empty stack exceptions
+        if let Some(Value::Int(count)) = frame.operand_stack.pop() {
+            if count < 0 {
+                return Err(format!("NegativeArraySizeException: {}", count));
+            }
+
+            let array = match atype {
+                4 => {
+                    // false = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                5 => {
+                    // '\0' = 0
+                    vec![Value::Int(0); count as usize]
+                }
+                6 => {
+                    vec![Value::Float(0.0); count as usize]
+                }
+                7 => {
+                    vec![Value::Double(0.0); count as usize]
+                }
+                8 => {
+                    // byte stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                9 => {
+                    // short stored as int
+                    vec![Value::Int(0); count as usize]
+                }
+                10 => {
+                    vec![Value::Int(0); count as usize]
+                }
+                11 => {
+                    vec![Value::Long(0); count as usize]
+                }
+                _ => return Err(format!("Invalid array type: {}", atype)),
+            };
+
+            // Push array reference onto the stack
+            frame
+                .operand_stack
+                .push(Value::Array(Rc::new(RefCell::new(array))));
+
+            let type_name = match atype {
+                4 => "boolean",
+                5 => "char",
+                6 => "float",
+                7 => "double",
+                8 => "byte",
+                9 => "short",
+                10 => "int",
+                11 => "long",
+                _ => "unknown",
+            };
+
+            debug_log!("  newarray {} [length={}]", type_name, count);
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Calculate the length of some array by popping its arrayref from the frame's operand stack
+    /// and pushing its length back onto the operand stack
+    fn execute_arraylength(&self, frame: &mut Frame) -> Result<InstructionCompleted, String> {
+        if frame.operand_stack.len() == 0 {
+            return Err("Stack underflow: arraylength requires 1 operand".to_string());
+        }
+
+        match frame.operand_stack.pop() {
+            Some(Value::Array(arrayref)) => {
+                let length = arrayref.borrow().len();
+
+                // arrays can't be larger than i32::MAX in JVM
+                let length_i32 = if length > i32::MAX as usize {
+                    return Err(format!("Array too large: {}", length));
+                } else {
+                    length as i32
+                };
+
+                frame.operand_stack.push(Value::Int(length_i32));
+                debug_log!("  arraylength [length={}]", length);
+                Ok(InstructionCompleted::ContinueMethodExecution)
+            }
+            //TODO: Handle null references
+            Some(other) => Err(format!(
+                "arraylength: expected array reference, got {:?}",
+                other
+            )),
+            None => Err("arraylength: failed to pop value from stack".to_string()),
+        }
+    }
+
+    /// Unconditionally branch to a target address specified by a 32-bit signed offset
+    /// from the address of the goto_w opcode itself (wide index variant)
+    fn execute_goto_w(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        *pc += 1;
+        let branchbyte1 = frame.bytecode[*pc] as u32;
+        *pc += 1;
+        let branchbyte2 = frame.bytecode[*pc] as u32;
+        *pc += 1;
+        let branchbyte3 = frame.bytecode[*pc] as u32;
+        *pc += 1;
+        let branchbyte4 = frame.bytecode[*pc] as u32;
+
+        // AS SPECIFIED BY THE SPECS:
+        //(branchbyte1 << 24) | (branchbyte2 << 16) | (branchbyte3 << 8) | branchbyte4
+        let offset =
+            ((branchbyte1 << 24) | (branchbyte2 << 16) | (branchbyte3 << 8) | branchbyte4) as i32;
+
+        let goto_address = *pc - 4;
+        let target = (goto_address as isize + offset as isize) as usize;
+
+        // NOTE: The offset is relative to the address of the goto_w opcode itself,
+        // not the current PC
+        *pc = target.wrapping_sub(1);
+
+        debug_log!("  goto_w {} (target: {})", offset, target);
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a reference from the operand stack and check if it's null
+    fn execute_ifnull(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        match frame.operand_stack.pop() {
+            Some(Value::Null) => {
+                *pc += 1;
+                let index_high = frame.bytecode[*pc] as u16;
+                *pc += 1;
+                let index_low = frame.bytecode[*pc] as u16;
+
+                // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                let offset = ((index_high << 8) | index_low) as i16;
+
+                // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                // not the current PC
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
+            }
+            Some(Value::Reference(_)) | Some(Value::Array(_)) => {
+                // Value is a non-null reference, don't branch
+                *pc += 2;
+            }
+            Some(other) => {
+                return Err(format!(
+                    "ifnull: value must be a reference, got {:?}",
+                    other
+                ));
+            }
+            None => {
+                return Err("ifnull: operand stack underflow".to_string());
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
+    }
+
+    /// Pop a reference from the operand stack and check if it's not null
+    fn execute_ifnonnull(
+        &self,
+        frame: &mut Frame,
+        pc: &mut usize,
+    ) -> Result<InstructionCompleted, String> {
+        match frame.operand_stack.pop() {
+            Some(Value::Null) => {
+                // Value is null, don't branch
+                *pc += 2;
+            }
+            Some(Value::Reference(_)) | Some(Value::Array(_)) => {
+                *pc += 1;
+                let index_high = frame.bytecode[*pc] as u16;
+                *pc += 1;
+                let index_low = frame.bytecode[*pc] as u16;
+
+                // AS SPECIFIED BY THE SPECS: (branchbyte1 << 8) | branchbyte2
+                let offset = ((index_high << 8) | index_low) as i16;
+
+                // NOTE: The offset is relative to the address of the if<cond> opcode itself,
+                // not the current PC
+                let branch_base = (*pc as isize) - 3;
+                let target = (branch_base + offset as isize) as usize;
+                *pc = target.wrapping_sub(1);
+            }
+            Some(other) => {
+                return Err(format!(
+                    "ifnonnull: value must be a reference, got {:?}",
+                    other
+                ));
+            }
+            None => {
+                return Err("ifnonnull: operand stack underflow".to_string());
+            }
+        }
+
+        Ok(InstructionCompleted::ContinueMethodExecution)
     }
 
     /// Count the number of params passed to some function call

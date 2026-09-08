@@ -5,7 +5,8 @@ public class Main implements IMain {
     public static void foo(int num1, int num2) {
         System.out.println(num1);
         System.out.println(num2);
-        bar();
+        String s = bar();
+        System.out.println(s);
     }
 
     public static void bar() {
