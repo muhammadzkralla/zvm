@@ -1,6 +1,6 @@
 public class Main implements IMain {
 
-    private static final String str = "lol";
+    private static String str = "lol";
 
     public static void main(String[] args) {
         foo(32, 501);
