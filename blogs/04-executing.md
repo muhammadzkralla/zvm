@@ -9,4 +9,300 @@ The full source of this series lives in a real JVM I'm building from scratch in 
 
 Please note that this is part four of this series of blogs talking about building your own JVM implementation from scratch. If you did not read the previous blogs yet, please consider reading them before proceeding to read this one. The previous blog to this one can be found from this [link](https://medium.com/@zkrallah/build-your-own-jvm-03-real-life-parsed-class-file-example-f21824ccee26).
 
-In the previous blog of this series:
+In the previous blogs of this series:
+
+1- In the first blog I explained the difference between compiling a Java code file using the javac compiler to output a compiled Java class file, and running that compiled Java class file using the java command that uses the JVM to run this code. Then, I explained that this running process requires 3 main steps which are: fetch, parse, and execute. Finally, I introduced you to some JVM core components that you must know and implement in order to build your own JVM from scratch.
+
+2- In the second blog I walked with you deeper through the parsing process by breaking down the Java class file structure into smaller sections, each section containing even smaller sections, and so on. I said that a compiled Java class file contains those major sections: class file header, constant pool, access flags, this class reference, super class reference, interfaces, fields, methods, and attributes. Also I explained in details the structure of each one of those sections in order to know how to parse them.
+
+3- In the previous blog I showed the actual byte content of a real-life compiled Java class file, and showed how can you parse each section of those major sections and retrieve its byte values in order to convert this non human-readable sequence of bytes into a human-readable format that you can simply understand as you will need them in the execution process that we will talk about in this blog.
+
+## The Java Program
+
+Before I proceed into explaining the execution process, I want to remind you that the program that I will explain using in this blog can found at [sample1] directory of my ZVM. I have two Java files:
+
+Main.java
+
+```java
+public class Main implements IMain {
+
+    private static String str = "lol";
+
+    public static void main(String[] args) {
+        foo(32, 501);
+        System.out.println(args[0]);
+        System.out.println(args[1]);
+    }
+
+    public static void foo(int num1, int num2) {
+        System.out.println(num1);
+        System.out.println(num2);
+        bar();
+    }
+
+    public static void bar() {
+        System.out.println("Wait... WTF IT WORKED????? jhafkjhlskjhakjg");
+    }
+
+    @Override
+    public void hello() {
+        System.out.println("Hello");
+    }
+}
+```
+
+IMain.java:
+
+```java
+public interface IMain {
+
+    void hello();
+}
+```
+
+So, we have a class and an interface. The interface just declares one method that takes no arguments and returns void. The class on the other hand, declares one field and four different methods. Let’s compile and run this simple programming with my ZVM and see the output.
+
+## ZVM Parsing and Execution
+
+After we compile the code using the javac command as stated in the previous blog (refer to [] if you don't know), we will run it using my ZVM:
+
+```
+./zvm Main arg1 arg2                                                                               ✔ 
+Magic: 0xCAFEBABE
+Minor: 0x0000
+Major: 0x0041
+Constant Pool Count: 51
+
+Constant Pool:
+  #1: Methodref [class_index=#2, name_and_type_index=#3]
+  #2: Class [name_index=#4]
+  #3: NameAndType [name_index=#5, descriptor_index=#6]
+  #4: Utf8 [java/lang/Object]
+  #5: Utf8 [<init>]
+  #6: Utf8 [()V]
+  #7: Methodref [class_index=#8, name_and_type_index=#9]
+  #8: Class [name_index=#10]
+  #9: NameAndType [name_index=#11, descriptor_index=#12]
+  #10: Utf8 [Main]
+  #11: Utf8 [foo]
+  #12: Utf8 [(II)V]
+  #13: Fieldref [class_index=#14, name_and_type_index=#15]
+  #14: Class [name_index=#16]
+  #15: NameAndType [name_index=#17, descriptor_index=#18]
+  #16: Utf8 [java/lang/System]
+  #17: Utf8 [out]
+  #18: Utf8 [Ljava/io/PrintStream;]
+  #19: Methodref [class_index=#20, name_and_type_index=#21]
+  #20: Class [name_index=#22]
+  #21: NameAndType [name_index=#23, descriptor_index=#24]
+  #22: Utf8 [java/io/PrintStream]
+  #23: Utf8 [println]
+  #24: Utf8 [(Ljava/lang/String;)V]
+  #25: Methodref [class_index=#20, name_and_type_index=#26]
+  #26: NameAndType [name_index=#23, descriptor_index=#27]
+  #27: Utf8 [(I)V]
+  #28: Methodref [class_index=#8, name_and_type_index=#29]
+  #29: NameAndType [name_index=#30, descriptor_index=#6]
+  #30: Utf8 [bar]
+  #31: String [string_index=#32]
+  #32: Utf8 [Wait... WTF IT WORKED????? jhafkjhlskjhakjg]
+  #33: String [string_index=#34]
+  #34: Utf8 [Hello]
+  #35: String [string_index=#36]
+  #36: Utf8 [lol]
+  #37: Fieldref [class_index=#8, name_and_type_index=#38]
+  #38: NameAndType [name_index=#39, descriptor_index=#40]
+  #39: Utf8 [str]
+  #40: Utf8 [Ljava/lang/String;]
+  #41: Class [name_index=#42]
+  #42: Utf8 [IMain]
+  #43: Utf8 [Code]
+  #44: Utf8 [LineNumberTable]
+  #45: Utf8 [main]
+  #46: Utf8 [([Ljava/lang/String;)V]
+  #47: Utf8 [hello]
+  #48: Utf8 [<clinit>]
+  #49: Utf8 [SourceFile]
+  #50: Utf8 [Main.java]
+
+Access Flags: 0x0021
+  Flags: ACC_PUBLIC, ACC_SUPER
+
+This Class: #8
+Super Class: #2
+Interfaces Count: 1
+Interfaces:
+  [0]: #41
+Fields Count: 1
+Fields:
+  [0]: Access Flags: 0x000A
+  [0]: Name: 39
+  [0]: Descriptor: 40
+  [0]: Attributes Count: 0
+Methods Count: 6
+Methods:
+  [0]: Access Flags: 0x0001
+  [0]: Name: 5
+  [0]: Descriptor: 6
+  [0]: Attributes Count: 1
+  Attributes:
+      [0]: Name: 43
+      [0]: Length: 29
+      Info Bytes: 0, 1, 0, 1, 0, 0, 0, 5, 42, 183, 0, 1, 177, 0, 0, 0, 1, 0, 44, 0, 0, 0, 6, 0, 1, 0, 0, 0, 1, 
+  [1]: Access Flags: 0x0009
+  [1]: Name: 45
+  [1]: Descriptor: 46
+  [1]: Attributes Count: 1
+  Attributes:
+      [0]: Name: 43
+      [0]: Length: 63
+      Info Bytes: 0, 3, 0, 1, 0, 0, 0, 27, 16, 32, 17, 1, 245, 184, 0, 7, 178, 0, 13, 42, 3, 50, 182, 0, 19, 178, 0, 13, 42, 4, 50, 
+182, 0, 19, 177, 0, 0, 0, 1, 0, 44, 0, 0, 0, 18, 0, 4, 0, 0, 0, 6, 0, 8, 0, 7, 0, 17, 0, 8, 0, 26, 0, 9, 
+  [2]: Access Flags: 0x0009
+  [2]: Name: 11
+  [2]: Descriptor: 12
+  [2]: Attributes Count: 1
+  Attributes:
+      [0]: Name: 43
+      [0]: Length: 54
+      Info Bytes: 0, 2, 0, 2, 0, 0, 0, 18, 178, 0, 13, 26, 182, 0, 25, 178, 0, 13, 27, 182, 0, 25, 184, 0, 28, 177, 0, 0, 0, 1, 0, 4
+4, 0, 0, 0, 18, 0, 4, 0, 0, 0, 12, 0, 7, 0, 13, 0, 14, 0, 14, 0, 17, 0, 15, 
+  [3]: Access Flags: 0x0009
+  [3]: Name: 30
+  [3]: Descriptor: 6
+  [3]: Attributes Count: 1
+  Attributes:
+      [0]: Name: 43
+      [0]: Length: 37
+      Info Bytes: 0, 2, 0, 0, 0, 0, 0, 9, 178, 0, 13, 18, 31, 182, 0, 19, 177, 0, 0, 0, 1, 0, 44, 0, 0, 0, 10, 0, 2, 0, 0, 0, 18, 0,
+ 8, 0, 19, 
+  [4]: Access Flags: 0x0001
+  [4]: Name: 47
+  [4]: Descriptor: 6
+  [4]: Attributes Count: 1
+  Attributes:
+      [0]: Name: 43
+      [0]: Length: 37
+      Info Bytes: 0, 2, 0, 1, 0, 0, 0, 9, 178, 0, 13, 18, 33, 182, 0, 19, 177, 0, 0, 0, 1, 0, 44, 0, 0, 0, 10, 0, 2, 0, 0, 0, 23, 0,
+ 8, 0, 24, 
+  [5]: Access Flags: 0x0008
+  [5]: Name: 48
+  [5]: Descriptor: 6
+  [5]: Attributes Count: 1
+  Attributes:
+      [0]: Name: 43
+      [0]: Length: 30
+      Info Bytes: 0, 1, 0, 0, 0, 0, 0, 6, 18, 35, 179, 0, 37, 177, 0, 0, 0, 1, 0, 44, 0, 0, 0, 6, 0, 1, 0, 0, 0, 3, 
+Attributes Count: 1
+Attributes:
+      [0]: Name: 49
+      [0]: Length: 2
+      Info Bytes: 0, 50, 
+------------------------------------
+PARSING THE CLASS FILE IS OVER
+Current Offset Value: 0x0347
+Bytes Processed: 839
+Starting JVM execution...
+
+
+CURRENT CALL STACK SIZE? 2
+
+
+EXECUTING FRAME: <clinit>
+
+
+Executing opcode: Ldc at pc: 0
+  ldc "lol"
+Executing opcode: Putstatic at pc: 2
+  putstatic Main.str = Reference("lol")
+Executing opcode: Return at pc: 5
+  return
+
+
+EXECUTING FRAME: main
+
+
+Executing opcode: Bipush at pc: 0
+  bipush 32
+stack_size: 1
+Executing opcode: Sipush at pc: 2
+  sipush 501
+Executing opcode: Invokestatic at pc: 5
+  invokestatic Main.foo:(II)V
+Method descriptor '(II)V' has 2 parameters
+param[0] = Int(501)
+param[1] = Int(32)
+
+
+EXECUTING FRAME: foo
+
+
+Executing opcode: Getstatic at pc: 0
+GETSTATIC: java/lang/System.out:Ljava/io/PrintStream;
+  getstatic System.out
+Executing opcode: Iload0 at pc: 3
+  iload_0 "Int(32)"
+Executing opcode: Invokevirtual at pc: 4
+INVOKEVIRTUAL: java/io/PrintStream.println:(I)V
+32
+Executing opcode: Getstatic at pc: 7
+GETSTATIC: java/lang/System.out:Ljava/io/PrintStream;
+  getstatic System.out
+Executing opcode: Iload1 at pc: 10
+  iload_1 "Int(501)"
+Executing opcode: Invokevirtual at pc: 11
+INVOKEVIRTUAL: java/io/PrintStream.println:(I)V
+501
+Executing opcode: Invokestatic at pc: 14
+  invokestatic Main.bar:()V
+Method descriptor '()V' has 0 parameters
+
+
+EXECUTING FRAME: bar
+
+
+Executing opcode: Getstatic at pc: 0
+GETSTATIC: java/lang/System.out:Ljava/io/PrintStream;
+  getstatic System.out
+Executing opcode: Ldc at pc: 3
+  ldc "Wait... WTF IT WORKED????? jhafkjhlskjhakjg"
+Executing opcode: Invokevirtual at pc: 5
+INVOKEVIRTUAL: java/io/PrintStream.println:(Ljava/lang/String;)V
+Wait... WTF IT WORKED????? jhafkjhlskjhakjg
+Executing opcode: Return at pc: 8
+  return
+Executing opcode: Return at pc: 17
+  return
+Executing opcode: Getstatic at pc: 8
+GETSTATIC: java/lang/System.out:Ljava/io/PrintStream;
+  getstatic System.out
+Executing opcode: Aload_0 at pc: 11
+  aload_0 = Array(RefCell { value: [Reference("arg1"), Reference("arg2")] })
+Executing opcode: Iconst0 at pc: 12
+  iconst_0
+Executing opcode: Aaload at pc: 13
+  aaload [0] = arg1
+Executing opcode: Invokevirtual at pc: 14
+INVOKEVIRTUAL: java/io/PrintStream.println:(Ljava/lang/String;)V
+arg1
+Executing opcode: Getstatic at pc: 17
+GETSTATIC: java/lang/System.out:Ljava/io/PrintStream;
+  getstatic System.out
+Executing opcode: Aload_0 at pc: 20
+  aload_0 = Array(RefCell { value: [Reference("arg1"), Reference("arg2")] })
+Executing opcode: Iconst1 at pc: 21
+  iconst_1
+Executing opcode: Aaload at pc: 22
+  aaload [1] = arg2
+Executing opcode: Invokevirtual at pc: 23
+INVOKEVIRTUAL: java/io/PrintStream.println:(Ljava/lang/String;)V
+arg2
+Executing opcode: Return at pc: 26
+  return
+
+IS THE CALL STACK EMPTY NOW? true
+
+JVM execution completed.
+```
+
+I will skip the first part that is talking about parsing the compiled Java class file as I already have discussed this in the previous blog. Instead, I will start from the line that says: "Starting JVM execution...".
